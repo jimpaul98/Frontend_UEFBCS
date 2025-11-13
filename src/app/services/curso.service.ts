@@ -1,79 +1,57 @@
 // src/app/services/curso.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
-import { ApiService } from './api.service';
-import { AnioLectivo, AnioLectivoService } from './anio-lectivo.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../environments/environment';
+
+export interface MateriaAsignada {
+  materia: string;   // id de materia
+  profesor: string;  // id de profesor responsable
+}
 
 export interface Curso {
-  _id: string;
-  anioLectivo: string | { _id: string; nombre?: string; orden?: number };
+  _id?: string;
   nombre: string;
-  materias?: Array<any>;
-  orden?: number;                    // 👈 NUEVO
-  nextCursoId?: string | null;       // 👈 NUEVO
+  nivel: string;          // 🆕 NUEVO CAMPO
+  anioLectivo: string;
+  profesorTutor: string;
+  estudiantes: string[];
+  materias: MateriaAsignada[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class CursoService {
-  private api = inject(ApiService);
-  private anioSrv = inject(AnioLectivoService);
-  private base = 'cursos'; // => /api/cursos
+  private http = inject(HttpClient);
+  private baseUrl = `${environment.apiUrl}/cursos`;
 
-  listar(): Observable<Curso[]> {
-    return this.api.get<{ ok?: boolean; data?: Curso[] }>(this.base).pipe(
-      map((res: any) => (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []))
-    );
+  listar() {
+    return this.http.get<any>(`${this.baseUrl}`);
   }
 
-  obtener(id: string): Observable<Curso> {
-    return this.api.get<{ ok?: boolean; data?: Curso }>(`${this.base}/${id}`).pipe(
-      map((res: any) => res?.data ?? res)
-    );
+  obtener(id: string) {
+    return this.http.get<any>(`${this.baseUrl}/${id}`);
   }
 
-  crear(payload: Partial<Curso>): Observable<Curso> {
-    return this.api.post<{ ok?: boolean; data?: Curso }>(this.base, payload).pipe(
-      map((res: any) => res?.data ?? res)
-    );
+  /** 🆕 Si tu backend soporta populate con query (?populate=1) */
+  obtenerDetallado(id: string, populate = true) {
+    const url = populate ? `${this.baseUrl}/${id}?populate=1` : `${this.baseUrl}/${id}`;
+    return this.http.get<any>(url);
   }
 
-  actualizar(id: string, patch: Partial<Curso>): Observable<Curso> {
-    return this.api.put<{ ok?: boolean; data?: Curso }>(`${this.base}/${id}`, patch).pipe(
-      map((res: any) => res?.data ?? res)
-    );
+  getCursos() {
+    return this.http.get(this.baseUrl);
   }
 
-  eliminar(id: string): Observable<any> {
-    return this.api.delete<any>(`${this.base}/${id}`);
+  crear(data: Curso) {
+    console.log('[CursoService] POST /api/cursos', data);
+    return this.http.post<any>(`${this.baseUrl}`, data);
   }
 
-  /** Cursos de un año lectivo */
-  listarPorAnio(anioId: string): Observable<Curso[]> {
-    return this.listar().pipe(
-      map(cursos => cursos.filter(c =>
-        c?.anioLectivo === anioId ||
-        (c?.anioLectivo as any)?._id === anioId
-      ))
-    );
+  actualizar(id: string, data: Curso) {
+    console.log('[CursoService] PUT /api/cursos/' + id, data);
+    return this.http.put<any>(`${this.baseUrl}/${id}`, data);
   }
 
-  /**
-   * Dado un año actual, devuelve el **año siguiente** por `orden` y sus cursos.
-   * Si no tienes `orden` en los años, puedes resolver por `fechaInicio` (ajústalo).
-   */
-  cursosDelAnioSiguiente(anioActualId: string): Observable<{ anioSiguiente: AnioLectivo | null; cursos: Curso[] }> {
-    return this.anioSrv.getAll().pipe(
-      map((anios) => {
-        const actual = anios.find(a => a._id === anioActualId) || null;
-        if (!actual) return { anioSiguiente: null, cursos: [] };
-        const siguiente =
-          anios.filter(a => (a.orden ?? 0) > (actual.orden ?? 0))
-               .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))[0] || null;
-        return { anioSiguiente: siguiente, cursos: [] };
-      }),
-      // luego acoplamos cursos si hay año siguiente
-      // (NOTA: evitamos switchMap por mantenerlo simple aquí)
-      // El caller hará otra llamada a listarPorAnio si lo necesita
-    );
+  eliminar(id: string) {
+    return this.http.delete<any>(`${this.baseUrl}/${id}`);
   }
 }

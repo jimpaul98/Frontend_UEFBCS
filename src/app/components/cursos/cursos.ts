@@ -1,4 +1,4 @@
-// src/app/components/cursos/cursos.ts
+// src/app/pages/admin/cursos.ts
 import {
   Component,
   OnInit,
@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
 
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
@@ -21,9 +20,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
 
 import {
   CursoFormularioComponent,
@@ -31,11 +27,12 @@ import {
   CursoPayload,
 } from '../curso-formulario/curso-formulario';
 
-import { CursoService } from '../../services/curso.service';
-import { AnioLectivoService, AnioLectivo } from '../../services/anio-lectivo.service';
+// ---- Services
+import { CursoService, Curso } from '../../services/curso.service';
+import { AnioLectivoService } from '../../services/anio-lectivo.service';
 import { UsuarioService } from '../../services/usuario.service';
 import { EstudianteService } from '../../services/estudiante.service';
-import { MateriaService, Materia } from '../../services/materia.service';
+import { MateriaService } from '../../services/materia.service';
 
 @Component({
   standalone: true,
@@ -43,8 +40,6 @@ import { MateriaService, Materia } from '../../services/materia.service';
   imports: [
     CommonModule,
     HttpClientModule,
-    FormsModule,
-
     MatSnackBarModule,
     MatCardModule,
     MatDividerModule,
@@ -54,9 +49,6 @@ import { MateriaService, Materia } from '../../services/materia.service';
     MatDialogModule,
     MatProgressBarModule,
     MatListModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
   ],
   template: `
     <div class="wrap">
@@ -65,98 +57,49 @@ import { MateriaService, Materia } from '../../services/materia.service';
         <div class="titles">
           <h1>📘 Gestión de Cursos</h1>
           <p class="subtitle">
-            Administra cursos, su año lectivo, tutor, materias y estudiantes.
+            Crea cursos asignando materias (con su profesor responsable) y estudiantes.
           </p>
         </div>
         <div class="actions">
           <button mat-flat-button color="primary" (click)="abrirCrear()">
             <mat-icon>add</mat-icon>
-            Nuevo curso
+            Agregar curso
           </button>
         </div>
       </div>
-
-      <!-- Filtros -->
-      <mat-card class="filters-card">
-        <div class="filters">
-          <mat-form-field appearance="outline">
-            <mat-label>Año lectivo</mat-label>
-            <mat-select [(ngModel)]="filtroAnioId">
-              <mat-option [value]="''">Todos</mat-option>
-              <mat-option *ngFor="let a of aniosLectivo()" [value]="a._id">
-                {{ a.nombre }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <mat-form-field appearance="outline" class="filter-text">
-            <mat-label>Buscar curso</mat-label>
-            <input
-              matInput
-              [(ngModel)]="filtroTexto"
-              placeholder="Nombre de curso, tutor..."
-            />
-            <button
-              mat-icon-button
-              matSuffix
-              *ngIf="filtroTexto"
-              type="button"
-              (click)="filtroTexto = ''"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          </mat-form-field>
-        </div>
-      </mat-card>
 
       <!-- Tarjeta de listado -->
       <mat-card class="card">
         <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
 
-        <div class="list" *ngIf="cursosFiltrados().length; else vacio">
-          <mat-card class="item" *ngFor="let c of cursosFiltrados(); trackBy: trackByCursoId">
+        <div class="list" *ngIf="cursos().length; else vacio">
+          <mat-card class="item" *ngFor="let c of cursos()">
             <div class="item-head">
-              <div class="item-title-row">
-                <button class="item-title link" (click)="verDetalles(c)">
-                  {{ c.nombre }}
-                </button>
-                <span class="tag-orden" *ngIf="c.orden">
-                  #{{ c.orden }}
-                </span>
-              </div>
-
+              <!-- Nombre clickable para abrir detalles -->
+              <button class="item-title link" (click)="verDetalles(c)">{{ c.nombre }}</button>
               <mat-chip-set>
-                <mat-chip appearance="outlined" color="primary">
-                  Año: {{ c.anioLectivo?.nombre ?? c.anioLectivo }}
-                </mat-chip>
+                <mat-chip appearance="outlined" color="primary"
+                  >Año: {{ c.anioLectivo?.nombre ?? c.anioLectivo }}</mat-chip
+                >
+                <mat-chip appearance="outlined"
+                  >Tutor: {{ c.profesorTutor?.nombre ?? c.profesorTutor }}</mat-chip
+                >
                 <mat-chip appearance="outlined">
-                  Tutor: {{ c.profesorTutor?.nombre ?? c.profesorTutor }}
+                  Nivel: {{ c.nivel }}
                 </mat-chip>
-                <mat-chip appearance="outlined">
-                  {{ c.materias?.length || 0 }} materia(s)
-                </mat-chip>
-                <mat-chip appearance="outlined">
-                  {{ c.estudiantes?.length || 0 }} estudiante(s)
-                </mat-chip>
+                <mat-chip appearance="outlined">{{ c.materias?.length || 0 }} materia(s)</mat-chip>
               </mat-chip-set>
             </div>
 
-            <div class="item-footer">
-              <div class="meta" *ngIf="c.nextCursoId">
-                <mat-icon inline>trending_flat</mat-icon>
-                Promociona a: <strong>{{ c.nextCursoId }}</strong>
-              </div>
-
-              <div class="item-actions">
-                <button mat-stroked-button color="primary" type="button" (click)="abrirEditar(c)">
-                  <mat-icon>edit</mat-icon>
-                  Editar
-                </button>
-                <button mat-stroked-button color="warn" type="button" (click)="eliminar(c)">
-                  <mat-icon>delete</mat-icon>
-                  Eliminar
-                </button>
-              </div>
+            <div class="item-actions">
+              <button mat-stroked-button (click)="abrirEditar(c)">
+                <mat-icon>edit</mat-icon>
+                Editar
+              </button>
+              <button mat-stroked-button color="warn" (click)="eliminar(c)">
+                <mat-icon>delete</mat-icon>
+                Eliminar
+              </button>
             </div>
           </mat-card>
         </div>
@@ -164,7 +107,7 @@ import { MateriaService, Materia } from '../../services/materia.service';
         <ng-template #vacio>
           <div class="empty">
             <div class="emoji">🗂️</div>
-            <div class="msg">No hay cursos registrados con el filtro actual.</div>
+            <div class="msg">No hay cursos registrados.</div>
             <button mat-flat-button color="primary" (click)="abrirCrear()">
               <mat-icon>add</mat-icon>
               Crear el primero
@@ -182,7 +125,7 @@ import { MateriaService, Materia } from '../../services/materia.service';
               Información completa del curso seleccionado
             </div>
           </div>
-          <button mat-icon-button type="button" (click)="cerrarDialogo()">
+          <button mat-icon-button (click)="cerrarDialogo()">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -190,40 +133,35 @@ import { MateriaService, Materia } from '../../services/materia.service';
 
         <div class="det-wrap" *ngIf="cursoDetalle(); else cargandoDetalle">
           <div class="det-top">
-            <div class="det-name">
-              {{ cursoDetalle().nombre }}
-              <span class="tag-orden" *ngIf="cursoDetalle().orden">
-                #{{ cursoDetalle().orden }}
-              </span>
-            </div>
+            <div class="det-name">{{ cursoDetalle().nombre }}</div>
             <div class="det-meta">
               <mat-chip-set>
-                <mat-chip appearance="outlined" color="primary">
-                  Año:
-                  {{ cursoDetalle().anioLectivo?.nombre ?? cursoDetalle().anioLectivo }}
-                </mat-chip>
-                <mat-chip appearance="outlined">
-                  Tutor:
+                <mat-chip appearance="outlined" color="primary"
+                  >Año:
+                  {{ cursoDetalle().anioLectivo?.nombre ?? cursoDetalle().anioLectivo }}</mat-chip
+                >
+                <mat-chip appearance="outlined"
+                  >Tutor:
                   {{
                     cursoDetalle().profesorTutor?.nombre ?? cursoDetalle().profesorTutor
-                  }}
-                </mat-chip>
+                  }}</mat-chip
+                >
                 <mat-chip appearance="outlined">
-                  {{ cursoDetalle().materias?.length || 0 }} materia(s)
+                  Nivel: {{ cursoDetalle().nivel }}
                 </mat-chip>
-                <mat-chip appearance="outlined">
-                  {{ cursoDetalle().estudiantes?.length || 0 }} estudiante(s)
-                </mat-chip>
+                <mat-chip appearance="outlined"
+                  >{{ cursoDetalle().materias?.length || 0 }} materia(s)</mat-chip
+                >
+                <mat-chip appearance="outlined"
+                  >{{ cursoDetalle().estudiantes?.length || 0 }} estudiante(s)</mat-chip
+                >
               </mat-chip-set>
             </div>
           </div>
 
           <div class="det-sections">
             <mat-card class="det-card">
-              <div class="sec-title">
-                <mat-icon>menu_book</mat-icon>
-                Materias y profesores
-              </div>
+              <div class="sec-title"><mat-icon>menu_book</mat-icon> Materias y profesores</div>
               <mat-list dense *ngIf="cursoDetalle().materias?.length; else sinMaterias">
                 <mat-list-item *ngFor="let m of cursoDetalle().materias">
                   <mat-icon matListItemIcon>book</mat-icon>
@@ -239,14 +177,14 @@ import { MateriaService, Materia } from '../../services/materia.service';
             </mat-card>
 
             <mat-card class="det-card">
-              <div class="sec-title">
-                <mat-icon>group</mat-icon>
-                Estudiantes
-              </div>
+              <div class="sec-title"><mat-icon>group</mat-icon> Estudiantes</div>
               <mat-list dense *ngIf="cursoDetalle().estudiantes?.length; else sinEstudiantes">
                 <mat-list-item *ngFor="let e of cursoDetalle().estudiantes">
                   <mat-icon matListItemIcon>person</mat-icon>
-                  <div matListItemTitle>{{ e?.nombre ?? e }}</div>
+                  <div matListItemTitle>
+                    {{ e?.nombre ?? e }}
+                    <span *ngIf="e?.cedula"> - {{ e.cedula }}</span>
+                  </div>
                 </mat-list-item>
               </mat-list>
               <ng-template #sinEstudiantes>
@@ -293,56 +231,28 @@ import { MateriaService, Materia } from '../../services/materia.service';
         margin-right: 6px;
       }
 
-      .filters-card {
-        padding: 12px 16px;
-      }
-      .filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: center;
-      }
-      .filter-text {
-        flex: 1;
-        min-width: 220px;
-      }
-
       .card {
         padding: 0;
         overflow: hidden;
       }
       .list {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 12px;
         padding: 16px;
       }
       .item {
         padding: 14px;
         border-radius: 16px;
-        display: grid;
-        gap: 10px;
       }
       .item-head {
         display: grid;
-        gap: 8px;
-      }
-      .item-title-row {
-        display: flex;
-        align-items: center;
         gap: 8px;
       }
       .item-title {
         font-weight: 700;
         font-size: 16px;
         text-align: left;
-      }
-      .tag-orden {
-        padding: 1px 6px;
-        border-radius: 999px;
-        background: #e3f2fd;
-        font-size: 11px;
-        color: #1565c0;
       }
       .link {
         background: transparent;
@@ -355,26 +265,10 @@ import { MateriaService, Materia } from '../../services/materia.service';
       .link:hover {
         text-decoration: underline;
       }
-      .item-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .meta {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        opacity: 0.8;
-      }
-      .meta mat-icon {
-        font-size: 16px;
-      }
       .item-actions {
         display: flex;
         gap: 8px;
+        margin-top: 8px;
       }
 
       .empty {
@@ -421,9 +315,6 @@ import { MateriaService, Materia } from '../../services/materia.service';
       .det-name {
         font-size: 18px;
         font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
       }
       .det-sections {
         display: grid;
@@ -474,21 +365,20 @@ export class CursosComponent implements OnInit {
     if (!val) return '';
     if (typeof val === 'string') return val;
     if (typeof val === 'object' && val._id) return String(val._id);
-    if (typeof val === 'object' && val.uid) return String(val.uid);
     return '';
   }
+
   private mapIdArray(arr: any[]): string[] {
-    return Array.isArray(arr)
-      ? arr.map((x) => this.asId(x)).filter(Boolean)
-      : [];
+    return Array.isArray(arr) ? arr.map((x) => this.asId(x)).filter(Boolean) : [];
   }
 
   cargando = signal<boolean>(false);
 
-  aniosLectivo = signal<AnioLectivo[]>([]);
+  // Catálogos
+  aniosLectivo = signal<{ _id: string; nombre: string }[]>([]);
   profesores = signal<{ _id: string; nombre: string }[]>([]);
-  estudiantes = signal<{ _id: string; nombre: string }[]>([]);
-  materiasRaw = signal<Materia[]>([]);
+  estudiantes = signal<{ _id: string; nombre: string; cedula: string }[]>([]);
+  materiasRaw = signal<any[]>([]);
 
   materiasConProfesor = computed<MateriaCatalogoItem[]>(() =>
     (this.materiasRaw() ?? []).map((m: any) => ({
@@ -501,31 +391,6 @@ export class CursosComponent implements OnInit {
 
   cursos = signal<any[]>([]);
 
-  filtroAnioId = '';
-  filtroTexto = '';
-
-  cursosFiltrados = computed(() => {
-    const list = this.cursos() ?? [];
-    const anioId = this.filtroAnioId;
-    const q = (this.filtroTexto || '').toLowerCase().trim();
-
-    return list.filter((c) => {
-      if (anioId) {
-        const cid = this.asId(c.anioLectivo);
-        if (cid !== anioId) return false;
-      }
-      if (q) {
-        const nombre = (c.nombre ?? '').toLowerCase();
-        const tutor =
-          (c.profesorTutor?.nombre ??
-            c.profesorTutor ??
-            '')?.toString().toLowerCase();
-        if (!nombre.includes(q) && !tutor.includes(q)) return false;
-      }
-      return true;
-    });
-  });
-
   @ViewChild('detalleDlg') detalleDlgTpl!: TemplateRef<any>;
   detalleRef?: MatDialogRef<any>;
   cursoDetalle = signal<any | null>(null);
@@ -537,13 +402,12 @@ export class CursosComponent implements OnInit {
 
   private cargarCatalogos() {
     this.anioSvc.getAll().subscribe({
-      next: (rows) => this.aniosLectivo.set(rows ?? []),
+      next: (res: any) => this.aniosLectivo.set(res?.data ?? res ?? []),
       error: () =>
-        this.sb.open('No se pudieron cargar los años lectivos', 'Cerrar', {
-          duration: 3000,
-        }),
+        this.sb.open('No se pudieron cargar los años lectivos', 'Cerrar', { duration: 3000 }),
     });
 
+    // Profesores
     (this.usuarioSvc as any).getProfesores?.().subscribe?.({
       next: (res: any) => {
         const list = res?.data ?? res ?? [];
@@ -554,61 +418,40 @@ export class CursosComponent implements OnInit {
         this.profesores.set(mapped);
       },
       error: () =>
-        this.sb.open('No se pudieron cargar los profesores', 'Cerrar', {
-          duration: 3000,
-        }),
+        this.sb.open('No se pudieron cargar los profesores', 'Cerrar', { duration: 3000 }),
     });
 
+    // Estudiantes (incluye cédula)
     this.estuSvc.getAll().subscribe({
-      next: (rows: any) =>
+      next: (res: any) =>
         this.estudiantes.set(
-          (rows ?? []).map((e: any) => ({
+          (res?.data ?? res ?? []).map((e: any) => ({
             _id: e._id ?? e.uid ?? e.id,
             nombre: e.nombre ?? e.fullname ?? e.email,
+            cedula: e.cedula ?? e.ci ?? '',
           }))
         ),
       error: () =>
-        this.sb.open('No se pudieron cargar los estudiantes', 'Cerrar', {
-          duration: 3000,
-        }),
+        this.sb.open('No se pudieron cargar los estudiantes', 'Cerrar', { duration: 3000 }),
     });
 
+    // Materias
     this.materiaSvc.getAll().subscribe({
-      next: (res: any) =>
-        this.materiasRaw.set((res?.materias ?? res ?? []) as Materia[]),
-      error: () =>
-        this.sb.open('No se pudieron cargar las materias', 'Cerrar', {
-          duration: 3000,
-        }),
+      next: (res: any) => this.materiasRaw.set(res?.materias ?? res ?? []),
+      error: () => this.sb.open('No se pudieron cargar las materias', 'Cerrar', { duration: 3000 }),
     });
-  }
-
-  /** Normaliza cualquier forma de respuesta del backend a un array de cursos */
-  private normalizeCursosResponse(res: any): any[] {
-    console.log('[Cursos] respuesta listar()', res);
-
-    if (!res) return [];
-    if (Array.isArray(res)) return res;
-    if (Array.isArray(res.data)) return res.data;
-    if (Array.isArray(res.cursos)) return res.cursos;
-    if (Array.isArray(res.results)) return res.results;
-    return [];
   }
 
   refrescar() {
     this.cargando.set(true);
     this.cursoSvc.listar().subscribe({
       next: (res: any) => {
-        const data = this.normalizeCursosResponse(res);
-        this.cursos.set(data);
+        this.cursos.set(res?.data ?? res ?? []);
         this.cargando.set(false);
       },
-      error: (e) => {
+      error: () => {
         this.cargando.set(false);
-        console.error('[Cursos] Error listar:', e);
-        this.sb.open('No se pudieron cargar los cursos', 'Cerrar', {
-          duration: 3000,
-        });
+        this.sb.open('No se pudieron cargar los cursos', 'Cerrar', { duration: 3000 });
       },
     });
   }
@@ -618,9 +461,10 @@ export class CursosComponent implements OnInit {
   }
 
   abrirEditar(curso: any) {
-    const flat: any = {
+    const flat: Curso = {
       _id: this.asId(curso?._id) || '',
       nombre: curso?.nombre ?? '',
+      nivel: curso?.nivel ?? '',
       anioLectivo: this.asId(curso?.anioLectivo),
       profesorTutor: this.asId(curso?.profesorTutor),
       estudiantes: this.mapIdArray(curso?.estudiantes ?? []),
@@ -628,26 +472,21 @@ export class CursosComponent implements OnInit {
         ? curso.materias
             .map((m: any) => ({
               materia: this.asId(m?.materia),
-              profesor: this.asId(m?.profesor),
+              profesor: '',
             }))
-            .filter((row: { materia: string }) => !!row.materia)
+            .filter((row: { materia: any }) => !!row.materia)
         : [],
-      orden: curso.orden,
-      nextCursoId: curso.nextCursoId ?? null,
-      activo: curso.activo ?? true,
     };
 
     if (!flat._id) {
-      this.sb.open('No se puede editar: curso sin ID válido.', 'Cerrar', {
-        duration: 3500,
-      });
+      this.sb.open('No se puede editar: curso sin ID válido.', 'Cerrar', { duration: 3500 });
       return;
     }
 
     this.abrirDialogo(flat);
   }
 
-  private abrirDialogo(cursoExistente: any | null) {
+  private abrirDialogo(cursoExistente: Curso | null) {
     const ref = this.dialog.open(CursoFormularioComponent, {
       width: '900px',
       maxWidth: '95vw',
@@ -657,10 +496,10 @@ export class CursosComponent implements OnInit {
       data: null,
     });
 
-    ref.componentInstance.aniosLectivo = this.aniosLectivo;
-    ref.componentInstance.profesoresCatalogo = this.profesores;
-    ref.componentInstance.estudiantesCatalogo = this.estudiantes;
-    ref.componentInstance.materiasCatalogo = this.materiasConProfesor;
+    ref.componentInstance.aniosLectivo = this.aniosLectivo as any;
+    ref.componentInstance.profesoresCatalogo = this.profesores as any;
+    ref.componentInstance.estudiantesCatalogo = this.estudiantes as any;
+    ref.componentInstance.materiasCatalogo = this.materiasConProfesor as any;
     ref.componentInstance.cursoExistente = cursoExistente;
 
     ref.componentInstance.submitCurso.subscribe((payload: CursoPayload) => {
@@ -668,13 +507,11 @@ export class CursosComponent implements OnInit {
 
       const data: CursoPayload = {
         nombre: payload.nombre,
+        nivel: payload.nivel,
         anioLectivo: payload.anioLectivo,
         profesorTutor: payload.profesorTutor,
-        estudiantes: payload.estudiantes ?? [],
-        materias: payload.materias ?? [],
-        orden: payload.orden,
-        nextCursoId: payload.nextCursoId ?? null,
-        activo: payload.activo,
+        estudiantes: payload.estudiantes,
+        materias: payload.materias,
       };
 
       const req$ = isEdit
@@ -684,11 +521,9 @@ export class CursosComponent implements OnInit {
       this.cargando.set(true);
       req$.subscribe({
         next: () => {
-          this.sb.open(
-            isEdit ? 'Curso actualizado' : 'Curso creado',
-            'Cerrar',
-            { duration: 2500 }
-          );
+          this.sb.open(isEdit ? 'Curso actualizado' : 'Curso creado', 'Cerrar', {
+            duration: 2500,
+          });
           ref.close(true);
           this.refrescar();
         },
@@ -737,17 +572,7 @@ export class CursosComponent implements OnInit {
         this.refrescar();
       },
       error: (e) =>
-        this.sb.open(e?.error?.message ?? 'Error al eliminar', 'Cerrar', {
-          duration: 3500,
-        }),
+        this.sb.open(e?.error?.message ?? 'Error al eliminar', 'Cerrar', { duration: 3500 }),
     });
   }
-
-   trackByCursoId = (index: number, c: any): string => {
-    if (c && typeof c === 'object') {
-      if (c._id) return String(c._id);
-      if (c.uid) return String(c.uid);
-    }
-    return index.toString();
-  };
 }

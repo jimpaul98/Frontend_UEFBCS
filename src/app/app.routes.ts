@@ -99,38 +99,12 @@ export const routes: Routes = [
         title: 'Reportes Académicos',
       },
       {
-        path: 'admin-notas',
+        path: 'nota-final',
         canActivate: [AdminGuard],
         loadComponent: () =>
-          import('./components/admin-notas/admin-notas').then((m) => m.AdminNotasComponent),
-        title: 'Registrar notas (Admin)',
-      },
-      {
-        path: 'admin-asistencias',
-        canActivate: [AdminGuard],
-        loadComponent: () =>
-          import('./components/admin-asistencias/admin-asistencias').then(
-            (m) => m.AdminAsistenciasComponent
+          import('./components/nota-final-estudiante/nota-final-estudiante').then(
+            (m) => m.NotaFinalEstudianteComponent
           ),
-        title: 'Registrar asistencias (Admin)',
-      },
-      {
-        path: 'admin-promociones',
-        canActivate: [AdminGuard],
-        loadComponent: () =>
-          import('./components/admin-promociones/admin-promociones').then(
-            (m) => m.AdminPromocionesComponent
-          ),
-        title: 'Promociones (Admin)',
-      },
-      {
-        path: 'admin-matriculas',
-        canActivate: [AdminGuard],
-        loadComponent: () =>
-          import('./components/admin-matricula-masiva/admin-matricula-masiva').then(
-            (m) => m.AdminMatriculaMasivaComponent
-          ),
-        title: 'Promociones (Admin)',
       },
 
       // ============================

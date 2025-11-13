@@ -10,8 +10,20 @@ export interface AnioLectivo {
   fechaInicio: string; // ISO
   fechaFin: string;    // ISO
   actual: boolean;
-  activo?: boolean;
-  orden?: number;      // 👈 NUEVO
+  activo?: boolean;    // si tu schema lo tiene, vendrá aquí
+}
+
+// ⬇ NUEVO: interfaz para la nota final del estudiante
+export interface NotaFinalEstudiante {
+  anioLectivoId: string;
+  cursoId: string;
+  estudianteId: string;
+  notaFinal: number | null;
+  detalle: {
+    T1: number | null;
+    T2: number | null;
+    T3: number | null;
+  };
 }
 
 type CreatePayload = {
@@ -22,7 +34,6 @@ type CreatePayload = {
   fechaFin?: string;
   actual?: boolean;
   activo?: boolean;
-  orden?: number;      // 👈 NUEVO
 };
 
 type UpdatePayload = Partial<CreatePayload>;
@@ -30,9 +41,9 @@ type UpdatePayload = Partial<CreatePayload>;
 @Injectable({ providedIn: 'root' })
 export class AnioLectivoService {
   private api = inject(ApiService);
-  private base = 'aniolectivo'; // http://.../api/aniolectivo
+  private base = 'aniolectivo'; // http://localhost:5000/api/aniolectivo
 
-  /** 🔹 Normaliza años numéricos a fechas ISO (y pasa orden si viene) */
+  /** 🔹 Normaliza años numéricos a fechas ISO */
   private normalizePayload(input: CreatePayload | UpdatePayload): any {
     const out: any = { ...input };
 
@@ -48,7 +59,8 @@ export class AnioLectivoService {
     return out;
   }
 
-  // ===== Lectura =====
+  /** =================== Lectura =================== */
+
   getAll(): Observable<AnioLectivo[]> {
     return this.api.get<{ ok: boolean; data: AnioLectivo[] }>(this.base).pipe(
       map(res => res.data ?? [])
@@ -62,11 +74,13 @@ export class AnioLectivoService {
   }
 
   obtenerActual(): Observable<AnioLectivo | null> {
-    return this.api.get<{ ok: boolean; data: AnioLectivo | null }>(`${this.base}/actual`)
+    return this.api
+      .get<{ ok: boolean; data: AnioLectivo | null }>(`${this.base}/actual`)
       .pipe(map(res => res.data ?? null));
   }
 
-  // ===== Escritura =====
+  /** =================== Escritura =================== */
+
   create(payload: CreatePayload): Observable<AnioLectivo> {
     const body = this.normalizePayload(payload);
     return this.api.post<{ ok: boolean; data: AnioLectivo }>(this.base, body).pipe(
@@ -88,8 +102,22 @@ export class AnioLectivoService {
   }
 
   setActual(id: string) {
+    // Usa PUT porque ya tienes ese alias en tu router
     return this.api
       .put<{ ok: boolean; data: AnioLectivo }>(`${this.base}/${id}/actual`, {})
+      .pipe(map(res => res.data));
+  }
+
+  /** =================== Nota final del estudiante (NUEVO) =================== */
+  // Llama a: GET /api/aniolectivo/:anioId/curso/:cursoId/estudiante/:estId/nota-final
+  obtenerNotaFinal(
+    anioId: string,
+    cursoId: string,
+    estudianteId: string
+  ): Observable<NotaFinalEstudiante> {
+    const url = `${this.base}/${anioId}/curso/${cursoId}/estudiante/${estudianteId}/nota-final`;
+    return this.api
+      .get<{ ok: boolean; data: NotaFinalEstudiante }>(url)
       .pipe(map(res => res.data));
   }
 }

@@ -1,6 +1,5 @@
-// src/app/services/materia.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface Materia {
@@ -23,11 +22,8 @@ export class MateriaService {
   private api = inject(ApiService);
   private base = 'materias';
 
-  // ✅ ahora retorna Observable<Materia[]>
   getAll(): Observable<Materia[]> {
-    return this.api.get<MateriasResponse>(this.base).pipe(
-      map((res) => res?.materias ?? [])
-    );
+    return this.api.get<MateriasResponse>(this.base) as any;
   }
 
   getById(id: string): Observable<Materia> {
