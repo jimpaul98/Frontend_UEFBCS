@@ -602,7 +602,7 @@ export class ReporteCursoComponent implements OnInit {
         { text: `AÑO LECTIVO: ${institucion.anioLectivo}`, alignment: 'center', fontSize: 10 },
         { text: `JORNADA: ${institucion.jornada}`, alignment: 'center', fontSize: 10 },
         { text: `GRADO/CURSO: ${curso?.nombre ?? '—'}`, alignment: 'center', fontSize: 10 },
-        { text: ` NIVEL/SUBNIVEL: ${institucion.nivel}`, alignment: 'center', fontSize: 10 },
+        { text: ` NIVEL/SUBNIVEL: ${curso.nivel}`, alignment: 'center', fontSize: 10 },
         {
           text: `FECHA: ${new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' })}`,
           fontSize: 9, alignment: 'center', italics: true,

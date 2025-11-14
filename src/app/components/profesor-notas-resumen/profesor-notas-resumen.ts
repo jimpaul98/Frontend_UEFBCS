@@ -70,34 +70,38 @@ type RowVM = {
 
         <!-- Filtros -->
         <div class="filters">
+          <!-- Curso -->
           <mat-form-field appearance="outline" class="ff dense">
             <mat-label>Curso</mat-label>
             <mat-select [(ngModel)]="cursoId" name="cursoId" (selectionChange)="onCursoChange()">
-              <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">{{
-                c.nombre
-              }}</mat-option>
+              <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">
+                {{ c.nombre }}
+              </mat-option>
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field
-            *ngIf="materiasAsignadas().length > 1"
-            appearance="outline"
-            class="ff dense"
-          >
+          <!-- Materia SIEMPRE visible, deshabilitada si no hay -->
+          <mat-form-field appearance="outline" class="ff dense">
             <mat-label>Materia</mat-label>
-            <mat-select [(ngModel)]="materiaId" name="materiaId" (selectionChange)="cargarTabla()">
-              <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">{{
-                m.materiaNombre
-              }}</mat-option>
+            <mat-select
+              [(ngModel)]="materiaId"
+              name="materiaId"
+              (selectionChange)="cargarTabla()"
+              [disabled]="!materiasAsignadas().length"
+            >
+              <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
+                {{ m.materiaNombre }}
+              </mat-option>
             </mat-select>
           </mat-form-field>
 
+          <!-- Búsqueda -->
           <mat-form-field appearance="outline" class="ff dense search">
             <mat-label>Buscar estudiante</mat-label>
             <input
               matInput
-              [(ngModel)]="q"
-              (ngModelChange)="onSearchChange()"
+              [ngModel]="q()"
+              (ngModelChange)="q.set($event); onSearchChange()"
               placeholder="Escriba un nombre…"
             />
             <button
@@ -113,24 +117,21 @@ type RowVM = {
           </mat-form-field>
         </div>
 
+        <!-- Chips info -->
         <div class="badges" *ngIf="cursoDetalle()">
           <mat-chip-set>
-            <mat-chip appearance="outlined" color="primary"
-              >Año:
-              {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}</mat-chip
-            >
-            <mat-chip appearance="outlined"
-              >Tutor:
-              {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}</mat-chip
-            >
-            <mat-chip appearance="outlined"
-              >{{ cursoDetalle()?.estudiantes?.length || 0 }} estudiantes</mat-chip
-            >
+            <mat-chip appearance="outlined" color="primary">
+              Año: {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}
+            </mat-chip>
+            <mat-chip appearance="outlined">
+              Tutor: {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}
+            </mat-chip>
+            <mat-chip appearance="outlined">
+              {{ cursoDetalle()?.estudiantes?.length || 0 }} estudiantes
+            </mat-chip>
             <mat-chip appearance="outlined" *ngIf="showIds">cursoId={{ cursoId }}</mat-chip>
             <mat-chip appearance="outlined" *ngIf="showIds">anioId={{ anioLectivoId() }}</mat-chip>
-            <mat-chip appearance="outlined" *ngIf="showIds"
-              >materiaId={{ materiaId || materiasAsignadas()[0]?.materiaId }}</mat-chip
-            >
+            <mat-chip appearance="outlined" *ngIf="showIds">materiaId={{ materiaId }}</mat-chip>
           </mat-chip-set>
         </div>
 
@@ -141,7 +142,9 @@ type RowVM = {
           <table mat-table [dataSource]="viewRows()" class="modern-table compact mat-elevation-z1">
             <ng-container matColumnDef="n">
               <th mat-header-cell *matHeaderCellDef class="sticky center">#</th>
-              <td mat-cell *matCellDef="let r; let i = index" class="muted center">{{ i + 1 }}</td>
+              <td mat-cell *matCellDef="let r; let i = index" class="muted center">
+                {{ i + 1 }}
+              </td>
             </ng-container>
 
             <ng-container matColumnDef="est">
@@ -159,27 +162,27 @@ type RowVM = {
             <ng-container matColumnDef="t1">
               <th mat-header-cell *matHeaderCellDef class="sticky center">T1</th>
               <td mat-cell *matCellDef="let r" class="center">
-                <span class="pill" [class.good]="isOK(r.t1)" [class.bad]="isBad(r.t1)">{{
-                  fmt(r.t1)
-                }}</span>
+                <span class="pill" [class.good]="isOK(r.t1)" [class.bad]="isBad(r.t1)">
+                  {{ fmt(r.t1) }}
+                </span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="t2">
               <th mat-header-cell *matHeaderCellDef class="sticky center">T2</th>
               <td mat-cell *matCellDef="let r" class="center">
-                <span class="pill" [class.good]="isOK(r.t2)" [class.bad]="isBad(r.t2)">{{
-                  fmt(r.t2)
-                }}</span>
+                <span class="pill" [class.good]="isOK(r.t2)" [class.bad]="isBad(r.t2)">
+                  {{ fmt(r.t2) }}
+                </span>
               </td>
             </ng-container>
 
             <ng-container matColumnDef="t3">
               <th mat-header-cell *matHeaderCellDef class="sticky center">T3</th>
               <td mat-cell *matCellDef="let r" class="center">
-                <span class="pill" [class.good]="isOK(r.t3)" [class.bad]="isBad(r.t3)">{{
-                  fmt(r.t3)
-                }}</span>
+                <span class="pill" [class.good]="isOK(r.t3)" [class.bad]="isBad(r.t3)">
+                  {{ fmt(r.t3) }}
+                </span>
               </td>
             </ng-container>
 
@@ -190,8 +193,9 @@ type RowVM = {
                   class="pill final"
                   [class.good]="isOK(r.final)"
                   [class.bad]="isBad(r.final)"
-                  >{{ fmt(r.final) }}</span
                 >
+                  {{ fmt(r.final) }}
+                </span>
               </td>
             </ng-container>
 
@@ -205,7 +209,7 @@ type RowVM = {
             <div class="empty-icon">📋</div>
             <div class="empty-title">No hay datos para mostrar</div>
             <div class="empty-sub">
-              Seleccione <b>Curso</b> y (si aplica) <b>Materia</b>, luego presione <i>Recargar</i>.
+              Seleccione <b>Curso</b> y <b>Materia</b>, luego presione <i>Recargar</i>.
             </div>
           </div>
         </ng-template>
@@ -261,9 +265,6 @@ type RowVM = {
       .dense .mat-mdc-form-field-infix {
         padding-top: 6px !important;
         padding-bottom: 6px !important;
-      }
-      .toggle {
-        margin-top: 6px;
       }
       .table-wrap {
         margin-top: 6px;
@@ -324,6 +325,28 @@ type RowVM = {
         text-align: center;
         color: #555;
       }
+      .empty-icon {
+        font-size: 40px;
+      }
+      .badges {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      @media (max-width: 900px) {
+        .filters {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 600px) {
+        .filters {
+          grid-template-columns: 1fr;
+        }
+        .header {
+          grid-template-columns: 1fr;
+        }
+      }
     `,
   ],
 })
@@ -366,7 +389,9 @@ export class ProfesorNotasResumenComponent implements OnInit {
   }
 
   // ===== Derivados =====
-  cursoSel = computed(() => (this.cursos() ?? []).find((c) => this.asId(c._id) === this.cursoId));
+  cursoSel = computed(() =>
+    (this.cursos() ?? []).find((c) => this.asId(c._id) === this.cursoId)
+  );
   anioLectivoId = computed(() =>
     this.asId(this.cursoDetalle()?.anioLectivo || this.cursoSel()?.anioLectivo)
   );
@@ -404,9 +429,12 @@ export class ProfesorNotasResumenComponent implements OnInit {
         this.cursoDetalle.set(c);
 
         const mats = this.materiasAsignadas();
+        // si solo hay una materia, la auto-seleccionamos
         this.materiaId = mats.length === 1 ? mats[0].materiaId : '';
 
-        this.cargarTabla();
+        if (this.materiaId) {
+          this.cargarTabla();
+        }
         this.cargando.set(false);
       },
       error: () => {
@@ -455,7 +483,6 @@ export class ProfesorNotasResumenComponent implements OnInit {
 
   /** Nota 0–10 desde distintos nombres y escalas (si viniera 0–100 lo normaliza) */
   private notaFrom(item: any): number | null {
-    // nombres posibles en tu backend
     const raw =
       item?.promedio10 ?? item?.promedio ?? item?.promedioTrimestral ?? item?.nota ?? null;
     if (raw == null) return null;
@@ -472,17 +499,23 @@ export class ProfesorNotasResumenComponent implements OnInit {
     if (!this.cursoDetalle()) return;
 
     const mats = this.materiasAsignadas();
-    if (mats.length > 1 && !this.materiaId) {
-      this.sb.open('Seleccione una materia asignada.', 'Cerrar', { duration: 2500 });
+    if (!this.materiaId) {
+      if (mats.length) {
+        this.sb.open('Seleccione una materia asignada.', 'Cerrar', { duration: 2500 });
+      } else {
+        this.sb.open('El curso no tiene materias asignadas a este profesor.', 'Cerrar', {
+          duration: 3000,
+        });
+      }
       return;
     }
 
-    // Construcción base con normalización fuerte
+    // Construcción base
     const estudiantes: any[] = this.cursoDetalle()?.estudiantes ?? [];
     const base: RowVM[] = (estudiantes ?? [])
       .map(
         (e: any): RowVM => ({
-          estudianteId: this.pickId(e), // <- ahora nunca será [object Object]
+          estudianteId: this.pickId(e),
           estudianteNombre: this.pickName(e),
           t1: null,
           t2: null,
@@ -499,7 +532,7 @@ export class ProfesorNotasResumenComponent implements OnInit {
 
     const cursoId = this.asId(this.cursoDetalle()?._id);
     const anioId = this.anioLectivoId();
-    const materiaId = this.materiaId || mats[0]?.materiaId || '';
+    const materiaId = this.materiaId;
 
     if (!cursoId || !anioId || !materiaId) {
       this.rows.set(base);
@@ -519,15 +552,13 @@ export class ProfesorNotasResumenComponent implements OnInit {
 
               const idx = new Map<string, number | null>();
               for (const it of arr) {
-                // acepta estudianteId directo o estudiante anidado
                 const sid = this.pickId((it as any)?.estudianteId ?? (it as any)?.estudiante);
                 const nota = this.notaFrom(it);
                 if (sid) idx.set(sid, nota);
               }
               resolve(idx);
             },
-            error: (e) => {
-              console.error(`[ResumenNotas] Error cargando ${tri}:`, e);
+            error: () => {
               resolve(new Map());
             },
           });
@@ -536,18 +567,16 @@ export class ProfesorNotasResumenComponent implements OnInit {
     Promise.all([loadTrim('T1'), loadTrim('T2'), loadTrim('T3')])
       .then(([m1, m2, m3]) => {
         const merged = base.map((r: RowVM): RowVM => {
-          const sid = r.estudianteId; // ya normalizado con pickId
+          const sid = r.estudianteId;
 
           const t1 = m1.get(sid) ?? null;
           const t2 = m2.get(sid) ?? null;
           const t3 = m3.get(sid) ?? null;
 
           const final =
-            t1 != null && t2 != null && t3 != null ? Number(((t1 + t2 + t3) / 3).toFixed(2)) : null;
-
-          if (t1 != null || t2 != null || t3 != null) {
-          } else {
-          }
+            t1 != null && t2 != null && t3 != null
+              ? Number(((t1 + t2 + t3) / 3).toFixed(2))
+              : null;
 
           return { ...r, t1, t2, t3, final };
         });
@@ -555,7 +584,7 @@ export class ProfesorNotasResumenComponent implements OnInit {
         this.rows.set(merged);
         this.cargando.set(false);
       })
-      .catch((e) => {
+      .catch(() => {
         this.rows.set(base);
         this.cargando.set(false);
       });

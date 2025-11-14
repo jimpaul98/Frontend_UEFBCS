@@ -66,6 +66,7 @@ type RowVM = {
 
       <!-- Filtros -->
       <div class="filters">
+        <!-- Curso -->
         <mat-form-field appearance="outline" class="ff dense">
           <mat-label>Curso</mat-label>
           <mat-select [(ngModel)]="cursoId" name="cursoId" (selectionChange)="onCursoChange()">
@@ -73,13 +74,22 @@ type RowVM = {
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field *ngIf="materiasAsignadas().length > 1" appearance="outline" class="ff dense">
+        <!-- Materia SIEMPRE visible, pero deshabilitada si no hay -->
+        <mat-form-field appearance="outline" class="ff dense">
           <mat-label>Materia</mat-label>
-          <mat-select [(ngModel)]="materiaId" name="materiaId" (selectionChange)="cargarTabla()">
-            <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">{{ m.materiaNombre }}</mat-option>
+          <mat-select
+            [(ngModel)]="materiaId"
+            name="materiaId"
+            (selectionChange)="cargarTabla()"
+            [disabled]="!materiasAsignadas().length"
+          >
+            <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
+              {{ m.materiaNombre }}
+            </mat-option>
           </mat-select>
         </mat-form-field>
 
+        <!-- Búsqueda -->
         <mat-form-field appearance="outline" class="ff dense search">
           <mat-label>Buscar estudiante</mat-label>
           <input matInput [(ngModel)]="q" (ngModelChange)="onSearchChange()" placeholder="Escriba un nombre…" />
@@ -92,13 +102,19 @@ type RowVM = {
 
       <div class="badges" *ngIf="cursoDetalle()">
         <mat-chip-set>
-          <mat-chip appearance="outlined" color="primary">Año: {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}</mat-chip>
-          <mat-chip appearance="outlined">Tutor: {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}</mat-chip>
-          <mat-chip appearance="outlined">{{ (cursoDetalle()?.estudiantes?.length || 0) }} estudiantes</mat-chip>
+          <mat-chip appearance="outlined" color="primary">
+            Año: {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}
+          </mat-chip>
+          <mat-chip appearance="outlined">
+            Tutor: {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}
+          </mat-chip>
+          <mat-chip appearance="outlined">
+            {{ (cursoDetalle()?.estudiantes?.length || 0) }} estudiantes
+          </mat-chip>
           <mat-chip appearance="outlined" *ngIf="showIds">cursoId={{cursoId}}</mat-chip>
           <mat-chip appearance="outlined" *ngIf="showIds">anioId={{ anioLectivoId() }}</mat-chip>
-          <mat-chip appearance="outlined" *ngIf="showIds">materiaId={{ materiaId || materiasAsignadas()[0]?.materiaId }}</mat-chip>
-        </mat-chip-set>        
+          <mat-chip appearance="outlined" *ngIf="showIds">materiaId={{ materiaId }}</mat-chip>
+        </mat-chip-set>
       </div>
 
       <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
@@ -169,7 +185,9 @@ type RowVM = {
         <div class="empty">
           <div class="empty-icon">🗓️</div>
           <div class="empty-title">No hay datos para mostrar</div>
-          <div class="empty-sub">Seleccione <b>Curso</b> y (si aplica) <b>Materia</b>, luego presione <i>Recargar</i>.</div>
+          <div class="empty-sub">
+            Seleccione <b>Curso</b> y <b>Materia</b>, luego presione <i>Recargar</i>.
+          </div>
         </div>
       </ng-template>
     </mat-card>
@@ -202,7 +220,6 @@ type RowVM = {
     .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #EEE; font-variant-numeric: tabular-nums; }
     .chip.strong { font-weight: 700; background: #EAF5FF; }
     .badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .toggle { margin-top: 6px; }
 
     .empty { padding: 28px 14px; text-align: center; color: #555; }
     .empty-icon { font-size: 40px; }
@@ -290,12 +307,18 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
         this.cursoDetalle.set(c);
 
         const mats = this.materiasAsignadas();
+        // Si solo tiene 1 materia, la preseleccionamos
         this.materiaId = mats.length === 1 ? mats[0].materiaId : '';
 
-        this.cargarTabla();
+        if (this.materiaId) {
+          this.cargarTabla();
+        }
         this.cargando.set(false);
       },
-      error: () => { this.cargando.set(false); this.sb.open('No se pudo cargar el detalle del curso', 'Cerrar', { duration: 3000 }); }
+      error: () => {
+        this.cargando.set(false);
+        this.sb.open('No se pudo cargar el detalle del curso', 'Cerrar', { duration: 3000 });
+      }
     });
   }
 
@@ -332,7 +355,7 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
   private buildTri(dias: number | null, fj: number | null, fi: number | null): TriResumen {
     const asistidos = (dias != null && fi != null) ? Math.max(0, dias - fi) : null;
     return { diasLaborables: dias, fj, fi, asistidos };
-    // Nota: estamos siguiendo tu regla: asistidos = laborables - faltas INJUSTIFICADAS
+    // asistidos = laborables - faltas INJUSTIFICADAS
   }
 
   // ===== Carga de tabla =====
@@ -341,8 +364,12 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
     if (!this.cursoDetalle()) return;
 
     const mats = this.materiasAsignadas();
-    if (mats.length > 1 && !this.materiaId) {
-      this.sb.open('Seleccione una materia asignada.', 'Cerrar', { duration: 2500 });
+    if (!this.materiaId) {
+      if (mats.length) {
+        this.sb.open('Seleccione una materia asignada.', 'Cerrar', { duration: 2500 });
+      } else {
+        this.sb.open('El curso no tiene materias asignadas a este profesor.', 'Cerrar', { duration: 3000 });
+      }
       return;
     }
 
@@ -362,7 +389,7 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
 
     const cursoId = this.asId(this.cursoDetalle()?._id);
     const anioId = this.anioLectivoId();
-    const materiaId = this.materiaId || mats[0]?.materiaId || '';
+    const materiaId = this.materiaId;
 
     if (!cursoId || !anioId || !materiaId) {
       this.rows.set(base);
@@ -376,13 +403,13 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
       diasLaborables: number | null;
       faltasIdx: Map<string, { fj: number; fi: number }>;
     }>((resolve) => {
-      // 1) días laborables del curso/materia/trimestre
+      // 1) días laborables
       this.asisSrv.getDiasLaborables({ cursoId, anioLectivoId: anioId, materiaId, trimestre: tri })
         .subscribe({
           next: (d) => {
             const diasLab = (typeof d?.diasLaborables === 'number') ? d.diasLaborables : null;
 
-            // 2) faltas por estudiante
+            // 2) faltas
             this.asisSrv.obtenerFaltas({ cursoId, anioLectivoId: anioId, materiaId, trimestre: tri })
               .subscribe({
                 next: (res) => {
@@ -396,10 +423,10 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
                   }
                   resolve({ diasLaborables: diasLab, faltasIdx: idx });
                 },
-                error: (_e) => resolve({ diasLaborables: diasLab, faltasIdx: new Map() })
+                error: () => resolve({ diasLaborables: diasLab, faltasIdx: new Map() })
               });
           },
-          error: (_e) => resolve({ diasLaborables: null, faltasIdx: new Map() })
+          error: () => resolve({ diasLaborables: null, faltasIdx: new Map() })
         });
     });
 

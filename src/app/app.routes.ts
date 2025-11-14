@@ -75,7 +75,7 @@ export const routes: Routes = [
         path: 'calificaciones',
         canActivate: [AdminGuard],
         loadComponent: () =>
-          import('./components/calificaciones/calificaciones').then((m) => m.Calificaciones),
+          import('./components/calificaciones/calificaciones').then((m) => m.CalificacionesComponent),
         title: 'Ingreso de Calificaciones',
       },
       {
@@ -137,15 +137,7 @@ export const routes: Routes = [
           ),
         title: 'Reportes del Profesor',
       },
-      {
-        path: 'agregar-asistencia',
-        canActivate: [ProfesorGuard],
-        loadComponent: () =>
-          import('./components/profesor-asistencias/profesor-asistencias').then(
-            (m) => m.ProfesorAsistenciasCursoComponent
-          ),
-        title: 'Asistencia por Trimestre',
-      },
+
       {
         path: 'ver-asistencia',
         canActivate: [ProfesorGuard],
@@ -155,14 +147,13 @@ export const routes: Routes = [
           ),
         title: 'Resumen de Asistencia',
       },
+
       {
-        path: 'reporte',
-        canActivate: [ProfesorGuard],
+        path: 'profesor-reporte',
         loadComponent: () =>
-          import('./components/reporte-estudiante/reporte-estudiante').then(
-            (m) => m.ReporteEstudianteComponent
-          ),
-        title: 'Reporte por Estudiante',
+          import(
+            './components/profesor-reporte-trimestral-pdf/profesor-reporte-trimestral-pdf'
+          ).then((m) => m.ProfesorReporteTrimestralPdfComponent),
       },
 
       // 🔸 Catch-all interno

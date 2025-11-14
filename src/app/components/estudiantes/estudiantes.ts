@@ -31,7 +31,7 @@ import Swal from 'sweetalert2';
 
 import { Estudiante, EstudianteService } from '../../services/estudiante.service';
 import { EstudianteFormularioComponent } from '../estudiante-formulario/estudiante-formulario';
-import { MatCard } from "@angular/material/card";
+import { MatCard } from '@angular/material/card';
 
 @Component({
   selector: 'app-estudiantes',
@@ -45,8 +45,8 @@ import { MatCard } from "@angular/material/card";
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatPaginatorModule,
-    MatCard
-],
+    MatCard,
+  ],
   template: `
     <section class="wrap">
       <!-- Header -->
@@ -70,7 +70,8 @@ import { MatCard } from "@angular/material/card";
               class="search-clear"
               *ngIf="hasFilter"
               (click)="clearFilter()"
-              aria-label="Limpiar búsqueda">
+              aria-label="Limpiar búsqueda"
+            >
               <mat-icon>close</mat-icon>
             </button>
           </div>
@@ -80,7 +81,13 @@ import { MatCard } from "@angular/material/card";
           </button>
 
           <div class="upload-wrap">
-            <input type="file" #fileInput accept=".xlsx" hidden (change)="onExcelSelected($event)" />
+            <input
+              type="file"
+              #fileInput
+              accept=".xlsx"
+              hidden
+              (change)="onExcelSelected($event)"
+            />
             <button mat-stroked-button class="btn-stroked" (click)="fileInput.click()">
               <mat-icon>upload</mat-icon>
               Subir Excel
@@ -96,7 +103,7 @@ import { MatCard } from "@angular/material/card";
 
       <!-- Card contenedor -->
       <mat-card class="card mat-elevation-z1">
-        <mat-progress-bar *ngIf="(isLoading$ | async)" mode="indeterminate"></mat-progress-bar>
+        <mat-progress-bar *ngIf="isLoading$ | async" mode="indeterminate"></mat-progress-bar>
 
         <!-- Toolbar secundaria: resultados -->
         <div class="toolbar">
@@ -106,9 +113,11 @@ import { MatCard } from "@angular/material/card";
         </div>
 
         <!-- Tabla estilo “modern-table” -->
-        <div class="table-wrap table-slim" [class.center]="!dataSource.data.length && !(isLoading$ | async)">
+        <div
+          class="table-wrap table-slim"
+          [class.center]="!dataSource.data.length && !(isLoading$ | async)"
+        >
           <table mat-table [dataSource]="dataSource" class="table compact modern-table">
-
             <!-- Nombre -->
             <ng-container matColumnDef="nombre">
               <th mat-header-cell *matHeaderCellDef>Nombre</th>
@@ -118,13 +127,17 @@ import { MatCard } from "@angular/material/card";
             <!-- Email -->
             <ng-container matColumnDef="email">
               <th mat-header-cell *matHeaderCellDef>Email</th>
-              <td mat-cell *matCellDef="let e"><span class="muted">{{ e.email }}</span></td>
+              <td mat-cell *matCellDef="let e">
+                <span class="muted">{{ e.email }}</span>
+              </td>
             </ng-container>
 
             <!-- Cédula -->
             <ng-container matColumnDef="cedula">
               <th mat-header-cell *matHeaderCellDef>Cédula</th>
-              <td mat-cell *matCellDef="let e"><span class="mono">{{ e.cedula }}</span></td>
+              <td mat-cell *matCellDef="let e">
+                <span class="mono">{{ e.cedula }}</span>
+              </td>
             </ng-container>
 
             <!-- Celular -->
@@ -137,10 +150,22 @@ import { MatCard } from "@angular/material/card";
             <ng-container matColumnDef="acciones">
               <th mat-header-cell *matHeaderCellDef class="text-right">Acciones</th>
               <td mat-cell *matCellDef="let e" class="text-right actions-cell">
-                <button mat-icon-button color="primary" class="icon-btn" matTooltip="Editar" (click)="abrirFormulario(e)">
+                <button
+                  mat-icon-button
+                  color="primary"
+                  class="icon-btn"
+                  matTooltip="Editar"
+                  (click)="abrirFormulario(e)"
+                >
                   <mat-icon>edit</mat-icon>
                 </button>
-                <button mat-icon-button color="warn" class="icon-btn" matTooltip="Eliminar" (click)="eliminarEstudiante(e.uid!)">
+                <button
+                  mat-icon-button
+                  color="warn"
+                  class="icon-btn"
+                  matTooltip="Eliminar"
+                  (click)="eliminarEstudiante(e.uid!)"
+                >
                   <mat-icon>delete</mat-icon>
                 </button>
               </td>
@@ -157,7 +182,9 @@ import { MatCard } from "@angular/material/card";
                   <div>
                     <h3>Sin resultados</h3>
                     <p>Prueba ajustando tu búsqueda o limpia el filtro.</p>
-                    <button mat-stroked-button class="btn-outline" (click)="clearFilter()">Limpiar búsqueda</button>
+                    <button mat-stroked-button class="btn-outline" (click)="clearFilter()">
+                      Limpiar búsqueda
+                    </button>
                   </div>
                 </div>
               </td>
@@ -173,102 +200,223 @@ import { MatCard } from "@angular/material/card";
         <mat-paginator
           [length]="dataSource.filteredData.length"
           [pageSize]="10"
-          [pageSizeOptions]="[5,10,25,50]"
-          aria-label="Paginación">
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          aria-label="Paginación"
+        >
         </mat-paginator>
       </mat-card>
     </section>
   `,
-  styles: [`
-    /* ----- Layout general (soft/compact) ----- */
-    .wrap {
-      max-width: 980px;
-      margin: 24px auto;
-      padding: 0 12px;
-    }
-    .header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    .title-wrap { display: flex; flex-direction: column; gap: 4px; }
-    .title { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
-    .subtitle { color: #6b7280; font-size: 13px; }
-    .actions { display: flex; align-items: center; gap: 10px; }
+  styles: [
+    `
+      /* ----- Layout general (soft/compact) ----- */
+      .wrap {
+        max-width: 980px;
+        margin: 24px auto;
+        padding: 0 12px;
+      }
+      .header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+      .subtitle {
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
 
-    /* Botones */
-    .btn-primary { border-radius: 12px; padding-inline: 14px; height: 40px; }
-    .btn-stroked { border-radius: 12px; height: 36px; border-color: #d1d5db; }
-    .btn-outline {
-      height: 36px; padding: 0 18px; border-radius: 18px; font-size: 14px; font-weight: 600;
-      color: #1e3a8a; border: 1px solid #94a3b8; background: transparent; transition: all .2s ease;
-    }
-    .btn-outline:hover { background: #f1f5f9; border-color: #64748b; }
+      /* Botones */
+      .btn-primary {
+        border-radius: 12px;
+        padding-inline: 14px;
+        height: 40px;
+      }
+      .btn-stroked {
+        border-radius: 12px;
+        height: 36px;
+        border-color: #d1d5db;
+      }
+      .btn-outline {
+        height: 36px;
+        padding: 0 18px;
+        border-radius: 18px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e3a8a;
+        border: 1px solid #94a3b8;
+        background: transparent;
+        transition: all 0.2s ease;
+      }
+      .btn-outline:hover {
+        background: #f1f5f9;
+        border-color: #64748b;
+      }
 
-    /* Card */
-    .card {
-      border-radius: 18px;
-      padding: 0;
-      overflow: hidden;
-      position: relative;
-    }
+      /* Card */
+      .card {
+        border-radius: 18px;
+        padding: 0;
+        overflow: hidden;
+        position: relative;
+      }
 
-    /* Search (custom, ligera) */
-    .search { position: relative; width: 300px; min-width: 220px; }
-    .search-input {
-      width: 100%; height: 40px; border-radius: 12px;
-      padding: 0 36px 0 36px; border: 1px solid #e5e7eb; background: #fff; outline: none;
-    }
-    .search-input:focus { border-color: #c7d2fe; box-shadow: 0 0 0 3px #e0e7ff; }
-    .search-icon {
-      position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #6b7280;
-    }
-    .search-clear {
-      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-      height: 32px; width: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #6b7280;
-    }
+      /* Search (custom, ligera) */
+      .search {
+        position: relative;
+        width: 300px;
+        min-width: 220px;
+      }
+      .search-input {
+        width: 100%;
+        height: 40px;
+        border-radius: 12px;
+        padding: 0 36px 0 36px;
+        border: 1px solid #e5e7eb;
+        background: #fff;
+        outline: none;
+      }
+      .search-input:focus {
+        border-color: #c7d2fe;
+        box-shadow: 0 0 0 3px #e0e7ff;
+      }
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+      }
+      .search-clear {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 32px;
+        width: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #6b7280;
+      }
 
-    /* Toolbar secundaria */
-    .toolbar { display: flex; align-items: center; justify-content: flex-end; padding: 10px 12px; }
-    .results { font-size: 12px; color: #6b7280; }
+      /* Toolbar secundaria */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 12px;
+      }
+      .results {
+        font-size: 12px;
+        color: #6b7280;
+      }
 
-    /* Tabla moderna */
-    .table-wrap { background: #fff; position: relative; overflow: auto; }
-    .modern-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-    .modern-table th.mat-header-cell {
-      background: #f7f7fb; font-weight: 700; font-size: 13px; letter-spacing: 0.02em;
-      border-bottom: 1px solid #e5e7eb; padding: 10px 14px; color: #111827;
-    }
-    .modern-table td.mat-cell {
-      padding: 12px 14px; border-bottom: 1px solid #e5e7eb;
-    }
-    .modern-table tr.mat-row:hover td { background: #fafafa; }
-    .table-slim .compact th.mat-header-cell,
-    .table-slim .compact td.mat-cell { padding: 12px 14px; }
-    .text-right { text-align: right; }
+      /* Tabla moderna */
+      .table-wrap {
+        background: #fff;
+        position: relative;
+        overflow: auto;
+      }
+      .modern-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      .modern-table th.mat-header-cell {
+        background: #f7f7fb;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.02em;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 10px 14px;
+        color: #111827;
+      }
+      .modern-table td.mat-cell {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .modern-table tr.mat-row:hover td {
+        background: #fafafa;
+      }
+      .table-slim .compact th.mat-header-cell,
+      .table-slim .compact td.mat-cell {
+        padding: 12px 14px;
+      }
+      .text-right {
+        text-align: right;
+      }
 
-    .actions-cell { white-space: nowrap; }
-    .icon-btn { margin-right: 2px; }
+      .actions-cell {
+        white-space: nowrap;
+      }
+      .icon-btn {
+        margin-right: 2px;
+      }
 
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", monospace; }
-    .muted { color: #6b7280; }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Liberation Mono', monospace;
+      }
+      .muted {
+        color: #6b7280;
+      }
 
-    /* Empty state */
-    .empty-cell { padding: 14px; }
-    .empty-state {
-      display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center;
-      padding: 18px; border: 1px dashed #e5e7eb; border-radius: 12px; color: #6b7280; background: #fbfbfb;
-    }
-    .empty-state mat-icon { font-size: 28px; height: 28px; width: 28px; opacity: .7; }
+      /* Empty state */
+      .empty-cell {
+        padding: 14px;
+      }
+      .empty-state {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 18px;
+        border: 1px dashed #e5e7eb;
+        border-radius: 12px;
+        color: #6b7280;
+        background: #fbfbfb;
+      }
+      .empty-state mat-icon {
+        font-size: 28px;
+        height: 28px;
+        width: 28px;
+        opacity: 0.7;
+      }
 
-    /* Loading */
-    .loading { display: grid; justify-content: center; align-items: center; gap: 8px; padding: 24px; color: #6b7280; }
+      /* Loading */
+      .loading {
+        display: grid;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        padding: 24px;
+        color: #6b7280;
+      }
 
-    /* Paginador */
-    mat-paginator { border-top: 1px solid #e5e7eb; }
-  `],
+      /* Paginador */
+      mat-paginator {
+        border-top: 1px solid #e5e7eb;
+      }
+    `,
+  ],
 })
 export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
   private estudianteService = inject(EstudianteService);
@@ -322,7 +470,7 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
             title: 'Error de Conexión ❌',
             text: 'Error al cargar estudiantes. Verifique la conexión o el servicio.',
             icon: 'error',
-            confirmButtonText: 'Reintentar'
+            confirmButtonText: 'Reintentar',
           }).then(() => this.reload());
 
           return of(null);
@@ -365,7 +513,10 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
-    if (!file) { input.value = ''; return; }
+    if (!file) {
+      input.value = '';
+      return;
+    }
 
     Swal.fire({
       title: '¿Confirmar Importación?',
@@ -375,7 +526,7 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, importar',
-      cancelButtonText: 'No, cancelar'
+      cancelButtonText: 'No, cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
         Swal.fire({
@@ -383,20 +534,22 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
           text: 'Por favor espere, el proceso puede tardar unos segundos.',
           didOpen: () => Swal.showLoading(),
           allowOutsideClick: false,
-          allowEscapeKey: false
+          allowEscapeKey: false,
         });
 
-        this.estudianteService.importarExcel(file, { dryRun: false, allowUpdate: false }).subscribe({
-          next: (res) => {
-            Swal.close();
-            const { summary } = res || {};
-            const created = summary?.created ?? 0;
-            const updated = summary?.updated ?? 0;
-            const errors = summary?.errors ?? 0;
+        this.estudianteService
+          .importarExcel(file, { dryRun: false, allowUpdate: false })
+          .subscribe({
+            next: (res) => {
+              Swal.close();
+              const { summary } = res || {};
+              const created = summary?.created ?? 0;
+              const updated = summary?.updated ?? 0;
+              const errors = summary?.errors ?? 0;
 
-            const title = errors > 0 ? 'Importación con Errores ⚠️' : 'Importación Exitosa ✅';
-            const icon: 'success' | 'warning' = errors > 0 ? 'warning' : 'success';
-            const html = `
+              const title = errors > 0 ? 'Importación con Errores ⚠️' : 'Importación Exitosa ✅';
+              const icon: 'success' | 'warning' = errors > 0 ? 'warning' : 'success';
+              const html = `
               <div style="text-align: left;">
                 <p><strong>Resultado del proceso:</strong></p>
                 <ul>
@@ -407,15 +560,20 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
               </div>
             `;
 
-            Swal.fire({ title, html, icon, confirmButtonText: 'Aceptar' });
-            this.reload();
-          },
-          error: (err) => {
-            Swal.close();
-            const msg = err?.error?.message || 'Error desconocido al importar estudiantes.';
-            Swal.fire({ title: 'Error de Importación ❌', text: msg, icon: 'error', confirmButtonText: 'Entendido' });
-          },
-        });
+              Swal.fire({ title, html, icon, confirmButtonText: 'Aceptar' });
+              this.reload();
+            },
+            error: (err) => {
+              Swal.close();
+              const msg = err?.error?.message || 'Error desconocido al importar estudiantes.';
+              Swal.fire({
+                title: 'Error de Importación ❌',
+                text: msg,
+                icon: 'error',
+                confirmButtonText: 'Entendido',
+              });
+            },
+          });
       }
 
       input.value = '';
@@ -447,7 +605,7 @@ export class EstudiantesComponent implements OnInit, AfterViewInit, OnDestroy {
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar'
+      cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
         this.estudianteService.delete(id).subscribe({
