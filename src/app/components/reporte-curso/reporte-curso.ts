@@ -144,12 +144,35 @@ interface MateriaCurso {
   `,
   styles: [
     `
-      .wrap { padding: 20px; max-width: 1100px; margin: auto; }
-      .card { padding: 16px; border-radius: 12px; display: grid; gap: 14px; }
-      .header { display: grid; grid-template-columns: 1fr auto; align-items: center; }
-      .actions { display: inline-flex; gap: 8px; }
-      .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
-      .full-table { width: 100%; }
+      .wrap {
+        padding: 20px;
+        max-width: 1100px;
+        margin: auto;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 12px;
+        display: grid;
+        gap: 14px;
+      }
+      .header {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
+      .actions {
+        display: inline-flex;
+        gap: 8px;
+      }
+      .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      .full-table {
+        width: 100%;
+      }
     `,
   ],
 })
@@ -166,6 +189,7 @@ export class ReporteCursoComponent implements OnInit {
 
   cursoId = '';
   anioLectivoId = '';
+  anioLectivoNombre = ''; // ← NUEVO: nombre del año lectivo
   tipoReporte: TipoReporte = 'T1';
 
   cols = ['nombre', 'cedula', 'acciones'];
@@ -180,7 +204,9 @@ export class ReporteCursoComponent implements OnInit {
     if (this.tipoReporte === 'T2') return ['T1', 'T2'];
     return ['T1'];
   }
-  private roman(t: Trimestre) { return t === 'T1' ? 'I' : t === 'T2' ? 'II' : 'III'; }
+  private roman(t: Trimestre) {
+    return t === 'T1' ? 'I' : t === 'T2' ? 'II' : 'III';
+  }
 
   ngOnInit() {
     this.cursoSrv.listar().subscribe({
@@ -191,12 +217,26 @@ export class ReporteCursoComponent implements OnInit {
 
   async onCursoChange() {
     this.estudiantes.set([]);
+    this.anioLectivoNombre = '';
     if (!this.cursoId) return;
     this.cargando.set(true);
     try {
       const cursoResp = await firstValueFrom(this.cursoSrv.obtener(this.cursoId));
       const c = cursoResp?.data ?? cursoResp;
+
+      // Guardamos id y nombre del año lectivo
       this.anioLectivoId = this.asId(c?.anioLectivo);
+      if (c?.anioLectivo) {
+        if (typeof c.anioLectivo === 'object') {
+          this.anioLectivoNombre = (c.anioLectivo.nombre ??
+            c.anioLectivo.descripcion ??
+            '') as string;
+        } else {
+          this.anioLectivoNombre = String(c.anioLectivo);
+        }
+      } else {
+        this.anioLectivoNombre = '';
+      }
 
       const all = await firstValueFrom(this.estSrv.getAll());
       const ids: string[] = (c?.estudiantes ?? []).map((e: unknown) => this.asId(e as any));
@@ -239,13 +279,14 @@ export class ReporteCursoComponent implements OnInit {
     const c = (await firstValueFrom(this.cursoSrv.obtener(this.cursoId))) as any;
     const curso = c?.data ?? c;
 
-    const mats: { id: string; nombre: string }[] = (curso?.materias ?? []).map((m: MateriaCurso) => {
-      const id = this.asId(m.materia as any);
-      const nombre = typeof m.materia === 'string'
-        ? (m.materia as string)
-        : (m.materia?.nombre ?? '—');
-      return { id, nombre };
-    });
+    const mats: { id: string; nombre: string }[] = (curso?.materias ?? []).map(
+      (m: MateriaCurso) => {
+        const id = this.asId(m.materia as any);
+        const nombre =
+          typeof m.materia === 'string' ? (m.materia as string) : m.materia?.nombre ?? '—';
+        return { id, nombre };
+      }
+    );
 
     const map: NotaMap = {};
     for (const m of mats) map[m.id] = { nombre: m.nombre, T1: null, T2: null, T3: null };
@@ -255,20 +296,21 @@ export class ReporteCursoComponent implements OnInit {
       await Promise.all(
         mats.map(async (m) => {
           try {
-            const resp = await firstValueFrom(
+            const resp = (await firstValueFrom(
               this.caliSrv.obtenerNotas({
                 cursoId: this.cursoId,
                 anioLectivoId: this.anioLectivoId,
                 materiaId: m.id,
                 trimestre: tri,
               })
-            ) as CalificacionesGetResponse;
+            )) as CalificacionesGetResponse;
 
             const arr = resp?.estudiantes ?? [];
             const found = arr.find((x) => this.asId((x as any).estudianteId) === estId);
-            const raw = typeof (found as any)?.promedioTrimestral === 'number'
-              ? (found as any).promedioTrimestral
-              : null;
+            const raw =
+              typeof (found as any)?.promedioTrimestral === 'number'
+                ? (found as any).promedioTrimestral
+                : null;
 
             const valor = raw == null ? null : Number(raw);
             map[m.id][tri] = valor;
@@ -290,7 +332,10 @@ export class ReporteCursoComponent implements OnInit {
   private async buildAsistenciaPorTrimestre(
     estId: string
   ): Promise<Record<Trimestre, { fj: number; fi: number; laborables: number; asistidos: number }>> {
-    const out: Record<Trimestre, { fj: number; fi: number; laborables: number; asistidos: number }> = {
+    const out: Record<
+      Trimestre,
+      { fj: number; fi: number; laborables: number; asistidos: number }
+    > = {
       T1: { fj: 0, fi: 0, laborables: 0, asistidos: 0 },
       T2: { fj: 0, fi: 0, laborables: 0, asistidos: 0 },
       T3: { fj: 0, fi: 0, laborables: 0, asistidos: 0 },
@@ -308,14 +353,14 @@ export class ReporteCursoComponent implements OnInit {
     for (const t of trimestres) {
       // 1) Resumen directo del backend
       try {
-        const r = await firstValueFrom(
+        const r = (await firstValueFrom(
           this.asisSrv.getResumenTrimestre({
             cursoId: this.cursoId,
             anioLectivoId: this.anioLectivoId,
             estudianteId: estId,
             trimestre: t,
           })
-        ) as AsistenciaResumen;
+        )) as AsistenciaResumen;
 
         const fj = Number(r?.faltasJustificadas ?? 0) || 0;
         const fi = Number(r?.faltasInjustificadas ?? 0) || 0;
@@ -325,51 +370,60 @@ export class ReporteCursoComponent implements OnInit {
         out[t] = { fj, fi, laborables, asistidos };
         continue;
       } catch (err) {
-        console.warn('[reporte-curso] getResumenTrimestre falló, usando fallback por materias', { t, err });
+        console.warn('[reporte-curso] getResumenTrimestre falló, usando fallback por materias', {
+          t,
+          err,
+        });
       }
 
       // 2) Fallback: sumar por materias
-      let fj = 0, fi = 0, laborables = 0;
+      let fj = 0,
+        fi = 0,
+        laborables = 0;
 
       // Días laborables por materia
-      await Promise.all(materias.map(async (materiaId) => {
-        try {
-          const dl = await firstValueFrom(
-            this.asisSrv.getDiasLaborables({
-              cursoId: this.cursoId,
-              anioLectivoId: this.anioLectivoId,
-              materiaId,
-              trimestre: t,
-            })
-          );
-          const v = Number(dl?.diasLaborables ?? 0) || 0;
-          laborables += v;
-        } catch (err) {
-          console.warn('[reporte-curso] getDiasLaborables error', { t, materiaId, err });
-        }
-      }));
+      await Promise.all(
+        materias.map(async (materiaId) => {
+          try {
+            const dl = await firstValueFrom(
+              this.asisSrv.getDiasLaborables({
+                cursoId: this.cursoId,
+                anioLectivoId: this.anioLectivoId,
+                materiaId,
+                trimestre: t,
+              })
+            );
+            const v = Number(dl?.diasLaborables ?? 0) || 0;
+            laborables += v;
+          } catch (err) {
+            console.warn('[reporte-curso] getDiasLaborables error', { t, materiaId, err });
+          }
+        })
+      );
 
       // Faltas por materia
-      await Promise.all(materias.map(async (materiaId) => {
-        try {
-          const faltas = await firstValueFrom(
-            this.asisSrv.obtenerFaltas({
-              cursoId: this.cursoId,
-              anioLectivoId: this.anioLectivoId,
-              materiaId,
-              trimestre: t,
-            })
-          );
-          const arr = faltas?.estudiantes ?? [];
-          const mine = arr.find((x) => this.asId((x as any).estudianteId) === estId);
-          if (mine) {
-            fj += Number((mine as any).faltasJustificadas ?? 0) || 0;
-            fi += Number((mine as any).faltasInjustificadas ?? 0) || 0;
+      await Promise.all(
+        materias.map(async (materiaId) => {
+          try {
+            const faltas = await firstValueFrom(
+              this.asisSrv.obtenerFaltas({
+                cursoId: this.cursoId,
+                anioLectivoId: this.anioLectivoId,
+                materiaId,
+                trimestre: t,
+              })
+            );
+            const arr = faltas?.estudiantes ?? [];
+            const mine = arr.find((x) => this.asId((x as any).estudianteId) === estId);
+            if (mine) {
+              fj += Number((mine as any).faltasJustificadas ?? 0) || 0;
+              fi += Number((mine as any).faltasInjustificadas ?? 0) || 0;
+            }
+          } catch (err) {
+            console.warn('[reporte-curso] obtenerFaltas error', { t, materiaId, err });
           }
-        } catch (err) {
-          console.warn('[reporte-curso] obtenerFaltas error', { t, materiaId, err });
-        }
-      }));
+        })
+      );
 
       const asistidos = Math.max(0, laborables - fi);
       out[t] = { fj, fi, laborables, asistidos };
@@ -391,7 +445,7 @@ export class ReporteCursoComponent implements OnInit {
     row: { T1?: number | null; T2?: number | null; T3?: number | null },
     trimestres: Trimestre[]
   ): number | null {
-    const vals = trimestres.map(t => row[t] ?? null).filter(v => v != null) as number[];
+    const vals = trimestres.map((t) => row[t] ?? null).filter((v) => v != null) as number[];
     if (!vals.length) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
   }
@@ -401,23 +455,21 @@ export class ReporteCursoComponent implements OnInit {
     trimestres: Trimestre[]
   ): number | null {
     const finals = rows
-      .map(r => this.promedioMateriaSeleccion(r, trimestres))
-      .filter(v => v != null) as number[];
+      .map((r) => this.promedioMateriaSeleccion(r, trimestres))
+      .filter((v) => v != null) as number[];
     if (!finals.length) return null;
     return finals.reduce((a, b) => a + b, 0) / finals.length;
   }
 
-  /** promedio por columna (cada trimestre) */
   private promedioColumnaTrimestre(
     rows: Array<{ T1?: number | null; T2?: number | null; T3?: number | null }>,
     t: Trimestre
   ): number | null {
-    const vals = rows.map(r => r[t] ?? null).filter(v => v != null) as number[];
+    const vals = rows.map((r) => r[t] ?? null).filter((v) => v != null) as number[];
     if (!vals.length) return null;
     return vals.reduce((a, b) => a + b, 0) / vals.length;
   }
 
-  /** Observación según promedio */
   private clasificarPromedio(n: number | null): string {
     if (n == null || isNaN(Number(n))) return '—';
     const v = Number(n);
@@ -426,7 +478,6 @@ export class ReporteCursoComponent implements OnInit {
     return 'Reprobado';
   }
 
-  /** Convierte una imagen (ruta assets) a base64 */
   private async getBase64ImageFromURL(url: string): Promise<string> {
     const res = await fetch(url);
     const blob = await res.blob();
@@ -438,7 +489,6 @@ export class ReporteCursoComponent implements OnInit {
     });
   }
 
-  /** Asegura logos cargados una sola vez */
   private async ensureLogos() {
     try {
       if (!this.logoIzqB64) {
@@ -467,20 +517,30 @@ export class ReporteCursoComponent implements OnInit {
       throw new Error('Curso/anioLectivo faltante');
     }
 
-    await this.ensureLogos(); // <- cargar logos (caché)
+    await this.ensureLogos();
 
     const estId = this.asId((est as any)._id ?? (est as any).uid);
-    const curso = (this.cursos().find((c) => this.asId(c._id) === this.cursoId) ?? { nombre: '—' }) as any;
+    const curso = (this.cursos().find((c) => this.asId(c._id) === this.cursoId) ?? {
+      nombre: '—',
+    }) as any;
     const tutor = curso?.profesorTutor?.nombre ?? curso?.profesorTutor ?? '—';
+
+    // si por alguna razón no se llenó antes, tratamos de deducirlo del curso
+    const anioNombre =
+      this.anioLectivoNombre ||
+      (curso?.anioLectivo
+        ? typeof curso.anioLectivo === 'object'
+          ? curso.anioLectivo.nombre ?? curso.anioLectivo.descripcion ?? '—'
+          : String(curso.anioLectivo)
+        : '—');
 
     const notasMap = await this.buildNotasMapaPorEstudiante(estId);
     const asis = await this.buildAsistenciaPorTrimestre(estId);
     const trimestres = this.getSelectedTrimestres();
 
-    // ====== Tabla de notas (dinámica) ======
+    // ====== Tabla de notas ======
     const materiaIds = Object.keys(notasMap);
 
-    // Mostrar columna PROMEDIO y OBSERVACIÓN solo si es reporte FINAL
     const incluirPromedio = this.tipoReporte === 'FINAL';
     const incluirObs = incluirPromedio;
 
@@ -491,7 +551,6 @@ export class ReporteCursoComponent implements OnInit {
       ...(incluirObs ? [90] : []),
     ];
 
-    // Cabecera
     const bodyNotas: any[] = [
       [
         { text: 'ASIGNATURA', bold: true },
@@ -501,7 +560,12 @@ export class ReporteCursoComponent implements OnInit {
       ],
     ];
 
-    const filasMateria: { nombre: string; T1?: number | null; T2?: number | null; T3?: number | null }[] = [];
+    const filasMateria: {
+      nombre: string;
+      T1?: number | null;
+      T2?: number | null;
+      T3?: number | null;
+    }[] = [];
 
     for (const mid of materiaIds) {
       const row = notasMap[mid];
@@ -523,23 +587,20 @@ export class ReporteCursoComponent implements OnInit {
       bodyNotas.push(fila);
     }
 
-    // ===== Fila: PROMEDIO TRIMESTRE (+ promedio de la columna PROMEDIO cuando es FINAL)
     const promsPorTri = trimestres.map((t) => this.promedioColumnaTrimestre(filasMateria, t));
     const filaPromTri: any[] = [
       { text: 'PROMEDIO', bold: true },
       ...promsPorTri.map((v) => this.format2(v)),
     ];
 
-    // Si es FINAL, añadimos el promedio de la columna "PROMEDIO" en esta misma fila
     if (incluirPromedio) {
       const promGeneral = this.promedioGeneralSeleccion(filasMateria, trimestres);
-      filaPromTri.push(this.format2(promGeneral)); // promedio de la columna PROMEDIO
-      if (incluirObs) filaPromTri.push('—'); // no aplica observación para esta fila
+      filaPromTri.push(this.format2(promGeneral));
+      if (incluirObs) filaPromTri.push('—');
     }
+    bodyNotas.push(filaPromTri);
 
-    bodyNotas.push(filaPromTri);    
-
-    // ====== Asistencia (FJ/FI + Días asistidos) ======
+    // ====== Asistencia ======
     const widthsAsis = ['*', ...trimestres.flatMap(() => [25, 25])];
     const headerRow1: any[] = [{ text: 'ASISTENCIA', bold: true, rowSpan: 2 }];
     const headerRow2: any[] = [''];
@@ -556,21 +617,25 @@ export class ReporteCursoComponent implements OnInit {
     }
 
     const widthsDias = ['*', ...trimestres.map(() => 70)];
-    const diasHeader: any[] = [{ text: 'DÍAS ASISTIDOS', bold: true },
-      ...trimestres.map((t) => ({ text: this.roman(t), alignment: 'center', bold: true }))
+    const diasHeader: any[] = [
+      { text: 'DÍAS ASISTIDOS', bold: true },
+      ...trimestres.map((t) => ({ text: this.roman(t), alignment: 'center', bold: true })),
     ];
-    const diasRow: any[] = ['',
-      ...trimestres.map((t) => ({ text: `${asis[t].asistidos} / ${asis[t].laborables}`, alignment: 'center' }))
+    const diasRow: any[] = [
+      '',
+      ...trimestres.map((t) => ({
+        text: `${asis[t].asistidos} / ${asis[t].laborables}`,
+        alignment: 'center',
+      })),
     ];
 
-    const titulo = this.tipoReporte === 'FINAL' ? 'REPORTE FINAL' : `REPORTE TRIMESTRAL (${this.tipoReporte})`;
+    const titulo =
+      this.tipoReporte === 'FINAL' ? 'REPORTE FINAL' : `REPORTE TRIMESTRAL (${this.tipoReporte})`;
     const institucion = {
       nombreL1: environment.school?.titleLine1 ?? 'UNIDAD EDUCATIVA',
       nombreL2: environment.school?.titleLine2 ?? '“FRAY BARTOLOMÉ DE LAS CASAS - SALASACA”',
       lema: environment.school?.motto ?? '¡Buenos Cristianos, Buenos Ciudadanos!',
-      anioLectivo: String(environment.school?.year ?? '2024 - 2025'),
       jornada: environment.school?.jornada ?? 'MATUTINA',
-      nivel: environment.school?.nivel ?? 'BACHILLERATO EN CIENCIAS',
       amie: String(environment.school?.amie ?? '—'),
     };
 
@@ -578,7 +643,6 @@ export class ReporteCursoComponent implements OnInit {
       pageSize: 'A4',
       pageMargins: [32, 32, 32, 40],
       content: [
-        // === Encabezado: logos + textos centrados al mismo nivel ===
         {
           columns: [
             this.logoIzqB64 ? { image: this.logoIzqB64, width: 90 } : { text: '', width: 90 },
@@ -593,31 +657,63 @@ export class ReporteCursoComponent implements OnInit {
                 { text: titulo, bold: true, fontSize: 12 },
               ],
             },
-            this.logoDerB64 ? { image: this.logoDerB64, width: 50, alignment: 'right' } : { text: '', width: 50 },
+            this.logoDerB64
+              ? { image: this.logoDerB64, width: 50, alignment: 'right' }
+              : { text: '', width: 50 },
           ],
           columnGap: 10,
           margin: [0, 0, 0, 12],
         },
+        {
+          text: `AÑO LECTIVO: ${anioNombre}`,
+          alignment: 'center',
+          fontSize: 10,
+        },
 
-        { text: `AÑO LECTIVO: ${institucion.anioLectivo}`, alignment: 'center', fontSize: 10 },
         { text: `JORNADA: ${institucion.jornada}`, alignment: 'center', fontSize: 10 },
         { text: `GRADO/CURSO: ${curso?.nombre ?? '—'}`, alignment: 'center', fontSize: 10 },
-        { text: ` NIVEL/SUBNIVEL: ${curso.nivel}`, alignment: 'center', fontSize: 10 },
+        { text: `NIVEL/SUBNIVEL: ${curso?.nivel ?? '—'}`, alignment: 'center', fontSize: 10 },
+
         {
-          text: `FECHA: ${new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' })}`,
-          fontSize: 9, alignment: 'center', italics: true,
+          text: `FECHA: ${new Date().toLocaleDateString('es-EC', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}`,
+          fontSize: 9,
+          alignment: 'center',
+          italics: true,
         },
+
+        // <<< AÑO LECTIVO AQUÍ >>>
+
         { text: `TUTOR: ${tutor}`, fontSize: 10, alignment: 'center' },
-        { text: `NOMBRE DEL/LA ESTUDIANTE: ${est.nombre}`, fontSize: 10, alignment: 'center', margin: [0, 0, 0, 8] },
+        {
+          text: `NOMBRE DEL/LA ESTUDIANTE: ${est.nombre}`,
+          fontSize: 10,
+          alignment: 'center',
+          margin: [0, 0, 0, 8],
+        },
 
-        // Notas
-        { table: { headerRows: 1, widths: notasWidths, body: bodyNotas }, layout: 'lightHorizontalLines', margin: [0, 0, 0, 10] },
+        {
+          table: { headerRows: 1, widths: notasWidths, body: bodyNotas },
+          layout: 'lightHorizontalLines',
+          margin: [0, 0, 0, 10],
+        },
 
-        // FJ/FI
-        { table: { headerRows: 2, widths: widthsAsis, body: [headerRow1, headerRow2, dataRow] }, layout: 'lightHorizontalLines', fontSize: 10, margin: [0, 6, 0, 6] },
+        {
+          table: { headerRows: 2, widths: widthsAsis, body: [headerRow1, headerRow2, dataRow] },
+          layout: 'lightHorizontalLines',
+          fontSize: 10,
+          margin: [0, 6, 0, 6],
+        },
 
-        // Días asistidos
-        { table: { headerRows: 1, widths: widthsDias, body: [diasHeader, diasRow] }, layout: 'lightHorizontalLines', fontSize: 10, margin: [0, 0, 0, 16] },
+        {
+          table: { headerRows: 1, widths: widthsDias, body: [diasHeader, diasRow] },
+          layout: 'lightHorizontalLines',
+          fontSize: 10,
+          margin: [0, 0, 0, 16],
+        },
 
         { text: '_____________________________', margin: [0, 40, 0, 0] },
         { text: 'TUTOR/A', margin: [0, 4, 0, 0] },
