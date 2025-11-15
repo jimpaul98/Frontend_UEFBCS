@@ -20,6 +20,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import {
   CursoFormularioComponent,
@@ -49,6 +50,7 @@ import { MateriaService } from '../../services/materia.service';
     MatDialogModule,
     MatProgressBarModule,
     MatListModule,
+    MatTooltipModule,
   ],
   template: `
     <div class="wrap">
@@ -122,7 +124,7 @@ import { MateriaService } from '../../services/materia.service';
           <div>
             <div class="dlg-title">Detalles del curso</div>
             <div class="dlg-subtitle" *ngIf="cursoDetalle()">
-              Información completa del curso seleccionado
+              Revise estudiantes y materias. Puede quitar los que no correspondan.
             </div>
           </div>
           <button mat-icon-button (click)="cerrarDialogo()">
@@ -160,36 +162,79 @@ import { MateriaService } from '../../services/materia.service';
           </div>
 
           <div class="det-sections">
+            <!-- MATERIAS -->
             <mat-card class="det-card">
-              <div class="sec-title"><mat-icon>menu_book</mat-icon> Materias y profesores</div>
+              <div class="sec-title">
+                <mat-icon>menu_book</mat-icon>
+                <span>Materias y profesores</span>
+              </div>
+
               <mat-list dense *ngIf="cursoDetalle().materias?.length; else sinMaterias">
                 <mat-list-item *ngFor="let m of cursoDetalle().materias">
                   <mat-icon matListItemIcon>book</mat-icon>
+
                   <div matListItemTitle>{{ m.materia?.nombre ?? m.materia }}</div>
                   <div matListItemLine class="muted">
                     Profesor: {{ m.profesor?.nombre ?? m.profesor }}
                   </div>
+
+                  <button
+                    mat-icon-button
+                    matTooltip="Quitar esta materia del curso"
+                    color="warn"
+                    matListItemMeta
+                    (click)="quitarMateria(m)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
                 </mat-list-item>
               </mat-list>
+
               <ng-template #sinMaterias>
                 <div class="muted p2">No hay materias asignadas.</div>
               </ng-template>
+
+              <div class="hint muted">
+                Para agregar materias nuevas, use el botón <strong>Editar</strong> en la lista principal.
+              </div>
             </mat-card>
 
+            <!-- ESTUDIANTES -->
             <mat-card class="det-card">
-              <div class="sec-title"><mat-icon>group</mat-icon> Estudiantes</div>
+              <div class="sec-title">
+                <mat-icon>group</mat-icon>
+                <span>Estudiantes</span>
+              </div>
+
               <mat-list dense *ngIf="cursoDetalle().estudiantes?.length; else sinEstudiantes">
                 <mat-list-item *ngFor="let e of cursoDetalle().estudiantes">
                   <mat-icon matListItemIcon>person</mat-icon>
+
                   <div matListItemTitle>
                     {{ e?.nombre ?? e }}
                     <span *ngIf="e?.cedula"> - {{ e.cedula }}</span>
                   </div>
+
+                  <button
+                    mat-icon-button
+                    matTooltip="Quitar este estudiante del curso"
+                    color="warn"
+                    matListItemMeta
+                    (click)="quitarEstudiante(e)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
                 </mat-list-item>
               </mat-list>
+
               <ng-template #sinEstudiantes>
                 <div class="muted p2">No hay estudiantes registrados en este curso.</div>
               </ng-template>
+
+              <div class="hint muted">
+                Para matricular nuevos estudiantes en este curso, use el botón
+                <strong>Editar</strong> en la lista principal.
+              </div>
             </mat-card>
           </div>
         </div>
@@ -343,6 +388,10 @@ import { MateriaService } from '../../services/materia.service';
         display: grid;
         gap: 8px;
       }
+      .hint {
+        margin-top: 8px;
+        font-size: 12px;
+      }
       @media (max-width: 900px) {
         .det-sections {
           grid-template-columns: 1fr;
@@ -472,7 +521,7 @@ export class CursosComponent implements OnInit {
         ? curso.materias
             .map((m: any) => ({
               materia: this.asId(m?.materia),
-              profesor: '',
+              profesor: this.asId(m?.profesor),
             }))
             .filter((row: { materia: any }) => !!row.materia)
         : [],
@@ -573,6 +622,103 @@ export class CursosComponent implements OnInit {
       },
       error: (e) =>
         this.sb.open(e?.error?.message ?? 'Error al eliminar', 'Cerrar', { duration: 3500 }),
+    });
+  }
+
+  // ==========================
+  // Quitar estudiante del curso
+  // ==========================
+  quitarEstudiante(est: any) {
+    const curso = this.cursoDetalle();
+    if (!curso?._id) return;
+
+    const nombreEst = est?.nombre ?? est;
+    if (!confirm(`¿Quitar al estudiante "${nombreEst}" de este curso?`)) return;
+
+    const cursoId = this.asId(curso._id);
+
+    // Construimos payload limpio para actualizar
+    const payload: Curso = {
+      _id: cursoId,
+      nombre: curso.nombre,
+      nivel: curso.nivel,
+      anioLectivo: this.asId(curso.anioLectivo),
+      profesorTutor: this.asId(curso.profesorTutor),
+      estudiantes: (curso.estudiantes ?? [])
+        .map((x: any) => this.asId(x))
+        .filter((id: string) => id && id !== this.asId(est)),
+      materias: (curso.materias ?? []).map((m: any) => ({
+        materia: this.asId(m.materia),
+        profesor: this.asId(m.profesor),
+      })),
+    };
+
+    this.cursoSvc.actualizar(cursoId, payload).subscribe({
+      next: () => {
+        // Actualizar estado local del detalle para que se vea el cambio
+        const nuevosEsts = (curso.estudiantes ?? []).filter(
+          (x: any) => this.asId(x) !== this.asId(est)
+        );
+        this.cursoDetalle.set({ ...curso, estudiantes: nuevosEsts });
+        this.sb.open('Estudiante quitado del curso', 'Cerrar', { duration: 2500 });
+        this.refrescar();
+      },
+      error: (e) => {
+        console.error('[Cursos] Error al quitar estudiante:', e);
+        this.sb.open(
+          e?.error?.message ?? 'No se pudo quitar el estudiante',
+          'Cerrar',
+          { duration: 3500 }
+        );
+      },
+    });
+  }
+
+  // ==========================
+  // Quitar materia del curso
+  // ==========================
+  quitarMateria(materiaRow: any) {
+    const curso = this.cursoDetalle();
+    if (!curso?._id) return;
+
+    const nombreMat = materiaRow?.materia?.nombre ?? materiaRow?.materia ?? 'esta materia';
+    if (!confirm(`¿Quitar ${nombreMat} de este curso?`)) return;
+
+    const cursoId = this.asId(curso._id);
+    const materiaIdAEliminar = this.asId(materiaRow.materia);
+
+    const payload: Curso = {
+      _id: cursoId,
+      nombre: curso.nombre,
+      nivel: curso.nivel,
+      anioLectivo: this.asId(curso.anioLectivo),
+      profesorTutor: this.asId(curso.profesorTutor),
+      estudiantes: (curso.estudiantes ?? []).map((x: any) => this.asId(x)),
+      materias: (curso.materias ?? [])
+        .map((m: any) => ({
+          materia: this.asId(m.materia),
+          profesor: this.asId(m.profesor),
+        }))
+        .filter((m: any) => m.materia !== materiaIdAEliminar),
+    };
+
+    this.cursoSvc.actualizar(cursoId, payload).subscribe({
+      next: () => {
+        const nuevasMats = (curso.materias ?? []).filter(
+          (m: any) => this.asId(m.materia) !== materiaIdAEliminar
+        );
+        this.cursoDetalle.set({ ...curso, materias: nuevasMats });
+        this.sb.open('Materia quitada del curso', 'Cerrar', { duration: 2500 });
+        this.refrescar();
+      },
+      error: (e) => {
+        console.error('[Cursos] Error al quitar materia:', e);
+        this.sb.open(
+          e?.error?.message ?? 'No se pudo quitar la materia',
+          'Cerrar',
+          { duration: 3500 }
+        );
+      },
     });
   }
 }
