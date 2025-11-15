@@ -34,13 +34,16 @@ function deferChange(fn: () => void) {
 export class LoginComponent {
   credenciales = { correo: '', clave: '' };
   isLoading = false;
-
+esClaveVisible = false;
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
-
+toggleClaveVisibilidad() {
+    this.esClaveVisible = !this.esClaveVisible;
+    this.cdr.markForCheck(); 
+  }
   iniciarSesion() {
     if (this.isLoading) return;
 

@@ -25,12 +25,23 @@
           <mat-label>Contraseña</mat-label>
           <input
             matInput
-            type="password"
             name="clave"
             [(ngModel)]="credenciales.clave"
             required
+            autocomplete="current-password"
+            [type]="esClaveVisible ? 'text' : 'password'"
           />
-          <mat-icon matSuffix>lock</mat-icon>
+
+          <button
+            mat-icon-button
+            matSuffix
+            (click)="toggleClaveVisibilidad()"
+            [attr.aria-label]="'Ocultar contraseña'"
+            [attr.aria-pressed]="esClaveVisible"
+            type="button"
+          >
+            <mat-icon>{{ esClaveVisible ? 'visibility' : 'visibility_off' }}</mat-icon>
+          </button>
         </mat-form-field>
 
         <button

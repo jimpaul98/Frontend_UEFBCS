@@ -24,8 +24,10 @@ export class CursoService {
   private baseUrl = `${environment.apiUrl}/cursos`;
 
   listar() {
-    return this.http.get<any>(`${this.baseUrl}`);
-  }
+  // tipo flexible: puede venir { ok, data } O un array directo
+  return this.http.get<{ ok?: boolean; data?: Curso[] } | Curso[]>(`${this.baseUrl}`);
+}
+
 
   obtener(id: string) {
     return this.http.get<any>(`${this.baseUrl}/${id}`);

@@ -106,6 +106,14 @@ export const routes: Routes = [
             (m) => m.NotaFinalEstudianteComponent
           ),
       },
+      {
+        path: 'historial',
+        canActivate: [AdminGuard],
+        loadComponent: () =>
+          import('./components/reporte-final-anio/reporte-final-anio').then(
+            (m) => m.ReporteFinalAnioComponent
+          ),
+      },
 
       // ============================
       // PROFESOR
