@@ -353,67 +353,68 @@ export class DashboardAdminComponent implements OnInit, OnDestroy {
    * Usa CalificacionService.obtenerNotas(cursoId, anioLectivoId, materiaId, trimestre)
    */
   private async calcularPromediosCursos(cursos: any[]): Promise<(number | null)[]> {
-    const resultados: (number | null)[] = [];
     const trimestres: Trimestre[] = ['T1', 'T2', 'T3'];
 
-    for (const c of cursos) {
+    // Array de promesas para cada curso
+    const promesasCursos = cursos.map(async (c) => {
       const cursoId = this.asId(c._id);
       const anioId = this.asId(c.anioLectivo);
 
-      if (!cursoId || !anioId) {
-        resultados.push(null);
-        continue;
-      }
+      if (!cursoId || !anioId) return null;
 
       const materias: string[] = (c.materias ?? [])
         .map((m: any) => this.asId(m.materia))
         .filter((x: string) => !!x);
 
-      if (!materias.length) {
-        resultados.push(null);
-        continue;
-      }
+      if (!materias.length) return null;
 
-      let sumaNotas = 0;
-      let cuentaNotas = 0;
-
+      // Recolectar todas las peticiones de este curso
+      const peticiones = [];
       for (const matId of materias) {
         for (const tri of trimestres) {
-          try {
-            const resp: any = await firstValueFrom(
+          peticiones.push(
+            firstValueFrom(
               this.caliSrv.obtenerNotas({
                 cursoId,
                 anioLectivoId: anioId,
                 materiaId: matId,
                 trimestre: tri,
               })
-            );
-
-            const arr: any[] = resp?.estudiantes ?? [];
-            const nums = arr
-              .map((x: any) =>
-                typeof x?.promedioTrimestral === 'number' ? x.promedioTrimestral : null
-              )
-              .filter((n: number | null) => n != null) as number[];
-
-            if (nums.length) {
-              sumaNotas += nums.reduce((a, b) => a + b, 0);
-              cuentaNotas += nums.length;
-            }
-          } catch (err) {
-            console.warn('[Dashboard] Error obtenerNotas', { cursoId, matId, tri, err });
-          }
+            ).catch((err) => {
+              console.warn('[Dashboard] Error obtenerNotas', { cursoId, matId, tri, err });
+              return null; // Retornar null en caso de error para no romper Promise.all
+            })
+          );
         }
       }
 
-      if (!cuentaNotas) {
-        resultados.push(null); // sin datos
-      } else {
-        resultados.push(Number((sumaNotas / cuentaNotas).toFixed(2)));
-      }
-    }
+      // Esperar todas las notas del curso en paralelo
+      const respuestas = await Promise.all(peticiones);
 
-    return resultados;
+      let sumaNotas = 0;
+      let cuentaNotas = 0;
+
+      for (const resp of respuestas) {
+        if (!resp) continue;
+        const arr: any[] = (resp as any)?.estudiantes ?? [];
+        const nums = arr
+          .map((x: any) =>
+            typeof x?.promedioTrimestral === 'number' ? x.promedioTrimestral : null
+          )
+          .filter((n: number | null) => n != null) as number[];
+
+        if (nums.length) {
+          sumaNotas += nums.reduce((a, b) => a + b, 0);
+          cuentaNotas += nums.length;
+        }
+      }
+
+      if (!cuentaNotas) return null;
+      return Number((sumaNotas / cuentaNotas).toFixed(2));
+    });
+
+    // Esperar a que todos los cursos calculen sus promedios
+    return Promise.all(promesasCursos);
   }
 
   // =====================

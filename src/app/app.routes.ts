@@ -1,34 +1,33 @@
 import { Routes } from '@angular/router';
-import { LoginComponent } from './components/auth/login/login';
-import { RecuperarContrasenaComponent } from './components/auth/recuperar-contrasena/recuperar-contrasena';
-import { MainLayoutComponent } from './components/layout/main-layout/main-layout';
 import { AuthGuard } from './guards/auth.guard';
-import { Usuarios } from './components/usuarios/usuarios';
 import { ProfesorGuard } from './guards/profesor.guard';
 import { AdminGuard } from './guards/admin.guard';
-import { RestablecerContrasenaComponent } from './components/auth/restablecer-contrasena/restablecer-contrasena';
 
 export const routes: Routes = [
   // 1️⃣ Ruta principal → Login
   { path: '', redirectTo: 'login', pathMatch: 'full' },
 
   // 2️⃣ Autenticación pública
-  { path: 'login', component: LoginComponent, title: 'Iniciar Sesión' },
+  { 
+    path: 'login', 
+    loadComponent: () => import('./components/auth/login/login').then(m => m.LoginComponent),
+    title: 'Iniciar Sesión' 
+  },
   {
     path: 'recuperar-contrasena',
-    component: RecuperarContrasenaComponent,
+    loadComponent: () => import('./components/auth/recuperar-contrasena/recuperar-contrasena').then(m => m.RecuperarContrasenaComponent),
     title: 'Recuperar Clave',
   },
   {
     path: 'restablecer-contrasena/:token',
-    component: RestablecerContrasenaComponent,
+    loadComponent: () => import('./components/auth/restablecer-contrasena/restablecer-contrasena').then(m => m.RestablecerContrasenaComponent),
     title: 'Restablecer Clave',
   },
 
   // 3️⃣ Rutas protegidas
   {
     path: 'app',
-    component: MainLayoutComponent,
+    loadComponent: () => import('./components/layout/main-layout/main-layout').then(m => m.MainLayoutComponent),
     canActivate: [AuthGuard],
     children: [
       // 🔹 Redirección según rol
@@ -61,7 +60,7 @@ export const routes: Routes = [
       {
         path: 'usuarios',
         canActivate: [AdminGuard],
-        component: Usuarios,
+        loadComponent: () => import('./components/usuarios/usuarios').then(m => m.Usuarios),
         title: 'Gestión de Usuarios',
       },
       {

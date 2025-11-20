@@ -1,6 +1,6 @@
 // app.config.ts
 import { ApplicationConfig, provideZonelessChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 import {
   provideHttpClient,
   withInterceptors,
@@ -15,7 +15,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideAnimations(),
     provideZonelessChangeDetection(),
-    provideRouter(routes),
+    provideRouter(routes, withPreloading(PreloadAllModules)),
 
     provideHttpClient(
       withFetch(),                 // <-- SSR: recomendado

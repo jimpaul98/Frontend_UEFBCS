@@ -1,9 +1,5 @@
 // src/app/utils/cuali-from-promedio.ts
 
-/**
- * Devuelve la calificación cualitativa según el promedio numérico.
- * Ejemplo: 9.5 → "A (Excelente)"
- */
 export function cualiFromPromedio(promedio: number | null | undefined): string {
   if (promedio == null || isNaN(Number(promedio))) return '';
 

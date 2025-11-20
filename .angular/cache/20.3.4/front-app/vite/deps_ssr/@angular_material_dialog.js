@@ -13,10 +13,10 @@ import {
   createGlobalPositionStrategy,
   createOverlayRef
 } from "./chunk-HPVZOJOX.js";
-import "./chunk-5XYFHA5V.js";
 import {
   _animationsDisabled
 } from "./chunk-E54HIZ46.js";
+import "./chunk-5XYFHA5V.js";
 import "./chunk-QJVLQKZV.js";
 import {
   A11yModule,

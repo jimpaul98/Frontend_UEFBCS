@@ -18,10 +18,10 @@ import {
   _StructuralStylesLoader
 } from "./chunk-MU7DJQHT.js";
 import "./chunk-7MK3A7NQ.js";
-import "./chunk-5XYFHA5V.js";
 import {
   _animationsDisabled
 } from "./chunk-E54HIZ46.js";
+import "./chunk-5XYFHA5V.js";
 import {
   coerceBooleanProperty
 } from "./chunk-QJVLQKZV.js";

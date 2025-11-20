@@ -1,12 +1,5 @@
 import { createRequire } from 'module';const require = createRequire(import.meta.url);
 import {
-  MatRipple,
-  MatRippleModule
-} from "./chunk-IVRALJ3Y.js";
-import {
-  _StructuralStylesLoader
-} from "./chunk-MU7DJQHT.js";
-import {
   DomPortalOutlet,
   OverlayConfig,
   OverlayModule,
@@ -15,11 +8,18 @@ import {
   createOverlayRef,
   createRepositionScrollStrategy
 } from "./chunk-HPVZOJOX.js";
+import {
+  MatRipple,
+  MatRippleModule
+} from "./chunk-IVRALJ3Y.js";
+import {
+  _StructuralStylesLoader
+} from "./chunk-MU7DJQHT.js";
 import "./chunk-7MK3A7NQ.js";
-import "./chunk-5XYFHA5V.js";
 import {
   _animationsDisabled
 } from "./chunk-E54HIZ46.js";
+import "./chunk-5XYFHA5V.js";
 import "./chunk-QJVLQKZV.js";
 import {
   DOWN_ARROW,
