@@ -54,54 +54,34 @@ type RowVM = {
     MatChipsModule,
   ],
   template: `
-    <div class="wrap">
-      <mat-card class="card">
-        <!-- Header -->
-        <div class="header">
-          <div class="title-block">
-            <div class="eyebrow">
-              <mat-icon>picture_as_pdf</mat-icon>
-              Reporte Trimestral en PDF
-            </div>
-            <h2 class="title">Notas por Estudiante</h2>
-            <p class="sub">
-              Seleccione <b>Curso</b>, <b>Materia</b> y <b>Trimestre</b>. La tabla se cargará
-              automáticamente y podrá exportarla a <b>PDF</b>, con una fila de
-              <b>promedio del curso</b>.
-            </p>
-          </div>
-          <div class="actions">
-            <button mat-stroked-button (click)="recargarCursos()" [disabled]="cargandoCursos()">
-              <mat-icon>refresh</mat-icon>
-              Recargar cursos
-            </button>
-          </div>
+    <div class="page-container fade-in">
+      <div class="page-header">
+        <div>
+          <h1 class="main-title">Reporte de Calificaciones</h1>
+          <p class="subtitle">Genera reportes trimestrales y exporta a PDF fácilmente.</p>
         </div>
+        <button mat-icon-button (click)="recargarCursos()" [disabled]="cargandoCursos()" matTooltip="Actualizar cursos">
+          <mat-icon [class.spin]="cargandoCursos()">sync</mat-icon>
+        </button>
+      </div>
 
-        <mat-divider class="soft-divider"></mat-divider>
-
-        <!-- Filtros -->
-        <div class="filters">
-          <!-- Curso -->
-          <mat-form-field appearance="outline" class="ff dense">
-            <mat-label>Curso</mat-label>
-            <mat-select
-              [(ngModel)]="cursoId"
-              name="cursoId"
-              (selectionChange)="onCursoChange()"
-            >
+      <div class="control-panel mat-elevation-z0">
+        <div class="filters-grid">
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Seleccionar Curso</mat-label>
+            <mat-icon matPrefix class="field-icon">school</mat-icon>
+            <mat-select [(ngModel)]="cursoId" (selectionChange)="onCursoChange()">
               <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">
                 {{ c.nombre }}
               </mat-option>
             </mat-select>
           </mat-form-field>
 
-          <!-- Materia (obligatoria, sólo las que dicta el profesor) -->
-          <mat-form-field appearance="outline" class="ff dense">
+          <mat-form-field appearance="outline" class="custom-field">
             <mat-label>Materia</mat-label>
+            <mat-icon matPrefix class="field-icon">menu_book</mat-icon>
             <mat-select
               [(ngModel)]="materiaId"
-              name="materiaId"
               [disabled]="!materiasAsignadas().length"
               (selectionChange)="onMateriaChange()"
             >
@@ -111,276 +91,351 @@ type RowVM = {
             </mat-select>
           </mat-form-field>
 
-          <!-- Trimestre -->
-          <mat-form-field appearance="outline" class="ff dense">
-            <mat-label>Trimestre</mat-label>
-            <mat-select
-              [(ngModel)]="trimestre"
-              name="trimestre"
-              (selectionChange)="onTrimestreChange()"
-            >
-              <mat-option [value]="'T1'">Primer Trimestre</mat-option>
-              <mat-option [value]="'T2'">Segundo Trimestre</mat-option>
-              <mat-option [value]="'T3'">Tercer Trimestre</mat-option>
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Periodo</mat-label>
+            <mat-icon matPrefix class="field-icon">calendar_today</mat-icon>
+            <mat-select [(ngModel)]="trimestre" (selectionChange)="onTrimestreChange()">
+              <mat-option value="T1">Primer Trimestre</mat-option>
+              <mat-option value="T2">Segundo Trimestre</mat-option>
+              <mat-option value="T3">Tercer Trimestre</mat-option>
             </mat-select>
           </mat-form-field>
 
-          <!-- Botón PDF solamente -->
-          <div class="btns">
-            <button
-              mat-flat-button
-              color="primary"
-              class="btn-primary"
-              (click)="exportarPdf()"
-              [disabled]="!rows().length"
-            >
-              <mat-icon>picture_as_pdf</mat-icon>
-              <span>Exportar PDF</span>
-            </button>
+          <button
+            mat-flat-button
+            color="primary"
+            class="action-btn"
+            (click)="exportarPdf()"
+            [disabled]="!rows().length"
+          >
+            <mat-icon>picture_as_pdf</mat-icon>
+            Exportar PDF
+          </button>
+        </div>
+
+        <div class="info-badges" *ngIf="cursoDetalle()">
+          <div class="badge-item">
+            <mat-icon>person</mat-icon>
+            <span>Tutor: <strong>{{ cursoDetalle()?.profesorTutor?.nombre ?? 'N/A' }}</strong></span>
+          </div>
+          <div class="badge-item">
+            <mat-icon>groups</mat-icon>
+            <span>Estudiantes: <strong>{{ cursoDetalle()?.estudiantes?.length || 0 }}</strong></span>
+          </div>
+          <div class="badge-item">
+            <mat-icon>event</mat-icon>
+            <span>Año: <strong>{{ cursoDetalle()?.anioLectivo?.nombre ?? 'Actual' }}</strong></span>
           </div>
         </div>
+      </div>
 
-        <!-- Chips info -->
-        <div class="badges" *ngIf="cursoDetalle()">
-          <mat-chip-set>
-            <mat-chip appearance="outlined" color="primary">
-              Año: {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}
-            </mat-chip>
-            <mat-chip appearance="outlined">
-              Tutor: {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}
-            </mat-chip>
-            <mat-chip appearance="outlined">
-              {{ cursoDetalle()?.estudiantes?.length || 0 }} estudiantes
-            </mat-chip>
-            <mat-chip appearance="outlined">
-              Trimestre: {{ etiquetaTrimestre(trimestre) }}
-            </mat-chip>
-          </mat-chip-set>
-        </div>
+      <mat-progress-bar *ngIf="cargandoDetalle()" mode="indeterminate" class="custom-loader"></mat-progress-bar>
 
-        <mat-progress-bar *ngIf="cargandoDetalle()" mode="indeterminate"></mat-progress-bar>
+      <div class="data-container mat-elevation-z2" *ngIf="rows().length; else emptyState">
+        <table mat-table [dataSource]="rows()" class="friendly-table">
+          <ng-container matColumnDef="n">
+            <th mat-header-cell *matHeaderCellDef class="w-50 center-header">#</th>
+            <td mat-cell *matCellDef="let r; let i = index" class="w-50 text-muted center-cell">
+              {{ i + 1 }}
+            </td>
+          </ng-container>
 
-        <!-- Tabla -->
-        <div class="table-wrap" *ngIf="rows().length; else noRows">
-          <table mat-table [dataSource]="rows()" class="modern-table compact mat-elevation-z1">
-            <!-- # -->
-            <ng-container matColumnDef="n">
-              <th mat-header-cell *matHeaderCellDef class="sticky center">#</th>
-              <td mat-cell *matCellDef="let r; let i = index" class="muted center">
-                {{ i + 1 }}
-              </td>
-            </ng-container>
-
-            <!-- Estudiante -->
-            <ng-container matColumnDef="est">
-              <th mat-header-cell *matHeaderCellDef class="sticky">Estudiante</th>
-              <td mat-cell *matCellDef="let r">
-                <div class="student-cell">
-                  <div class="avatar">{{ r.estudianteNombre?.[0] || 'E' }}</div>
-                  <div class="student-name" [matTooltip]="r.estudianteNombre">
-                    {{ r.estudianteNombre }}
-                  </div>
+          <ng-container matColumnDef="est">
+            <th mat-header-cell *matHeaderCellDef>Estudiante</th>
+            <td mat-cell *matCellDef="let r">
+              <div class="student-row">
+                <div class="avatar-circle">
+                  {{ r.estudianteNombre?.charAt(0) ?? 'E' }}
                 </div>
-              </td>
-            </ng-container>
+                <span class="student-name">{{ r.estudianteNombre }}</span>
+              </div>
+            </td>
+          </ng-container>
 
-            <!-- Nota -->
-            <ng-container matColumnDef="nota">
-              <th mat-header-cell *matHeaderCellDef class="sticky center">Nota</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                <span class="pill" [class.good]="isOK(r.nota)" [class.bad]="isBad(r.nota)">
-                  {{ fmt(r.nota) }}
-                </span>
-              </td>
-            </ng-container>
+          <ng-container matColumnDef="nota">
+            <th mat-header-cell *matHeaderCellDef class="center-header">Calificación</th>
+            <td mat-cell *matCellDef="let r" class="center-cell">
+              <div class="grade-pill" [ngClass]="getGradeClass(r.nota)">
+                {{ fmt(r.nota) }}
+              </div>
+            </td>
+          </ng-container>
 
-            <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols" class="row"></tr>
-          </table>
+          <tr mat-header-row *matHeaderRowDef="cols"></tr>
+          <tr mat-row *matRowDef="let row; columns: cols" class="hover-row"></tr>
+        </table>
 
-          <!-- Fila de promedio (en pantalla) -->
-          <div class="footer-row">
-            <span class="label">Promedio del curso:</span>
-            <span class="value">{{ fmt(promedioCurso()) }}</span>
+        <div class="table-footer">
+          <span class="footer-label">Promedio del Curso:</span>
+          <div class="grade-pill big" [ngClass]="getGradeClass(promedioCurso())">
+            {{ fmt(promedioCurso()) }}
           </div>
         </div>
+      </div>
 
-        <ng-template #noRows>
-          <div class="empty">
-            <div class="empty-icon">📄</div>
-            <div class="empty-title">No hay datos para mostrar</div>
-            <div class="empty-sub">
-              Seleccione <b>Curso</b>, <b>Materia</b> y <b>Trimestre</b>. La tabla se cargará
-              automáticamente si hay información.
-            </div>
-          </div>
-        </ng-template>
-      </mat-card>
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <div class="illustration">📊</div>
+          <h3>Esperando datos...</h3>
+          <p>Selecciona un curso, materia y trimestre para ver las calificaciones.</p>
+        </div>
+      </ng-template>
     </div>
   `,
   styles: [
     `
-      .wrap {
-        padding: 16px;
-        max-width: 1100px;
+      /* Animaciones */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .fade-in { animation: fadeIn 0.4s ease-out; }
+      .spin { animation: spin 1s linear infinite; }
+      @keyframes spin { 100% { transform: rotate(360deg); } }
+
+      /* Variables CSS locales */
+      :host {
+        --primary-soft: #eef2ff;
+        --primary-color: #3f51b5;
+        --success-bg: #dcfce7;
+        --success-text: #166534;
+        --danger-bg: #fee2e2;
+        --danger-text: #991b1b;
+        --neutral-bg: #f3f4f6;
+        --text-main: #1f2937;
+        --text-secondary: #6b7280;
+        --border-radius: 16px;
+      }
+
+      .page-container {
+        max-width: 1000px;
         margin: 0 auto;
+        padding: 24px;
+        font-family: 'Roboto', sans-serif;
       }
-      .card {
-        padding: 16px;
-        border-radius: 16px;
-        display: grid;
-        gap: 12px;
+
+      /* Header */
+      .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
       }
-      .header {
+      .main-title {
+        font-size: 28px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-main);
+        letter-spacing: -0.5px;
+      }
+      .subtitle {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 15px;
+      }
+
+      /* Panel de Control */
+      .control-panel {
+        background: #fff;
+        border-radius: var(--border-radius);
+        padding: 24px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 16px;
+      }
+
+      .filters-grid {
         display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
         align-items: center;
       }
-      .eyebrow {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        font-size: 12px;
-        letter-spacing: 0.3px;
-        opacity: 0.8;
-      }
-      .title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 700;
-      }
-      .sub {
-        margin: 0;
-        opacity: 0.8;
-        font-size: 12.5px;
-      }
-      .filters {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(200px, 1fr));
-        gap: 10px;
-        align-items: end;
-      }
-      .ff {
+
+      /* Inputs personalizados */
+      .custom-field {
         width: 100%;
       }
-      .dense .mat-mdc-form-field-infix {
-        padding-top: 6px !important;
-        padding-bottom: 6px !important;
+      .field-icon {
+        color: var(--text-secondary);
+        margin-right: 8px;
       }
-      .btns {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+      ::ng-deep .custom-field .mat-mdc-form-field-subscript-wrapper {
+        display: none; /* Ocultar espacio extra inferior */
       }
-      .btn-primary mat-icon {
-        margin-right: 6px;
-      }
-      .table-wrap {
-        margin-top: 8px;
-        overflow: auto;
+
+      .action-btn {
+        height: 56px;
         border-radius: 12px;
-        border: 1px solid #eaeaea;
-      }
-      table {
-        width: 100%;
-        font-size: 13px;
-      }
-      .modern-table th {
-        background: #f9fafb;
         font-weight: 600;
-        color: #2f2f2f;
+        font-size: 15px;
+        box-shadow: 0 4px 12px rgba(63, 81, 181, 0.2);
       }
-      .modern-table th,
-      .modern-table td {
-        padding: 6px 10px;
+
+      /* Chips Info */
+      .info-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px dashed #e5e7eb;
       }
-      .student-cell {
+      .badge-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        min-width: 200px;
+        gap: 6px;
+        background: var(--neutral-bg);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        color: var(--text-secondary);
       }
-      .avatar {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: #eef2ff;
-        font-weight: 700;
-        font-size: 11px;
-      }
-      .pill {
-        display: inline-block;
-        min-width: 60px;
-        padding: 3px 10px;
-        border-radius: 999px;
-        background: #eee;
-        font-variant-numeric: tabular-nums;
-      }
-      .pill.good {
-        background: #e6f5e9;
-      }
-      .pill.bad {
-        background: #fdecea;
-      }
-      .center {
-        text-align: center;
-      }
-      .muted {
+      .badge-item mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
         opacity: 0.7;
       }
-      .empty {
-        padding: 28px 14px;
-        text-align: center;
-        color: #555;
+      .badge-item strong {
+        color: var(--text-main);
       }
-      .empty-icon {
-        font-size: 40px;
+
+      /* Loader */
+      .custom-loader {
+        border-radius: 4px;
+        height: 4px;
+        margin-bottom: 16px;
       }
-      .empty-title {
-        font-weight: 700;
+
+      /* Contenedor de Datos y Tabla */
+      .data-container {
+        background: #fff;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
       }
-      .badges {
+
+      .friendly-table {
+        width: 100%;
+      }
+      .friendly-table th {
+        background: #f9fafb;
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 16px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .friendly-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        color: var(--text-main);
+        font-size: 14px;
+      }
+      .hover-row:hover {
+        background-color: #f9fafb;
+      }
+      .center-header, .center-cell { text-align: center; }
+
+      /* Estudiante Avatar */
+      .student-row {
         display: flex;
         align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        gap: 12px;
       }
-      .footer-row {
-        padding: 10px 12px;
-        border-top: 1px solid #eee;
+      .avatar-circle {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      .student-name {
+        font-weight: 500;
+      }
+      .w-50 { width: 50px; }
+      .text-muted { color: var(--text-secondary); }
+
+      /* Pills de Notas */
+      .grade-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        padding: 4px 12px;
+        border-radius: 99px;
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .grade-pill.big {
+        font-size: 16px;
+        padding: 6px 16px;
+      }
+      .grade-pass {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+      }
+      .grade-fail {
+        background-color: var(--danger-bg);
+        color: var(--danger-text);
+      }
+      .grade-null {
+        background-color: var(--neutral-bg);
+        color: var(--text-secondary);
+      }
+
+      /* Footer */
+      .table-footer {
         display: flex;
         justify-content: flex-end;
-        gap: 8px;
-        font-size: 13px;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 24px;
+        background: #fdfdfd;
+        border-top: 1px solid #e5e7eb;
       }
-      .footer-row .value {
+      .footer-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: #fff;
+        border-radius: var(--border-radius);
+        border: 2px dashed #e5e7eb;
+        color: var(--text-secondary);
+      }
+      .illustration {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.8;
+      }
+      .empty-state h3 {
+        margin: 0 0 8px;
+        color: var(--text-main);
         font-weight: 700;
-        font-variant-numeric: tabular-nums;
       }
-      @media (max-width: 900px) {
-        .filters {
-          grid-template-columns: 1fr 1fr;
-        }
-      }
+
       @media (max-width: 600px) {
-        .filters {
-          grid-template-columns: 1fr;
-        }
-        .header {
-          grid-template-columns: 1fr;
-        }
-        .btns {
-          flex-direction: row;
-          flex-wrap: wrap;
-        }
+        .filters-grid { grid-template-columns: 1fr; }
+        .page-header { flex-direction: column; gap: 16px; }
       }
     `,
   ],
 })
 export class ProfesorReporteTrimestralPdfComponent implements OnInit {
+  // ... (El resto de tu lógica de TypeScript se mantiene EXACTAMENTE IGUAL)
   private sb = inject(MatSnackBar);
   private auth = inject(AuthService);
   private cursoSrv = inject(CursoService);
@@ -405,6 +460,12 @@ export class ProfesorReporteTrimestralPdfComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarCursos();
+  }
+
+  // Helper para clases CSS dinámicas de notas
+  getGradeClass(n: number | null): string {
+    if (n === null || isNaN(n)) return 'grade-null';
+    return n >= 7 ? 'grade-pass' : 'grade-fail';
   }
 
   private cargarCursos(): void {

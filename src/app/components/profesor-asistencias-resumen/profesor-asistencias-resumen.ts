@@ -46,191 +46,331 @@ type RowVM = {
     MatTableModule, MatProgressBarModule, MatTooltipModule, MatChipsModule,
   ],
   template: `
-  <div class="wrap">
-    <mat-card class="card">
-      <!-- Header -->
-      <div class="header">
-        <div class="title-block">
-          <div class="eyebrow"><mat-icon>event_available</mat-icon> Vista de asistencias</div>
-          <h2 class="title">Resumen de Asistencias por Curso</h2>
-          <p class="sub">Se muestran Días Laborables, FJ, FI y Asistidos por trimestre (T1, T2, T3).</p>
+    <div class="page-container fade-in">
+      
+      <div class="page-header">
+        <div>
+          <h1 class="main-title">Resumen de Asistencias</h1>
+          <p class="subtitle">Visualiza faltas justificadas (FJ), injustificadas (FI) y asistencia real por trimestre.</p>
         </div>
-        <div class="actions">
-          <button mat-stroked-button (click)="recargar()" [disabled]="cargando()">
-            <mat-icon>refresh</mat-icon> Recargar
-          </button>
+        <button mat-icon-button class="refresh-btn" (click)="recargar()" [disabled]="cargando()" matTooltip="Actualizar datos">
+          <mat-icon [class.spin]="cargando()">sync</mat-icon>
+        </button>
+      </div>
+
+      <div class="control-panel mat-elevation-z0">
+        <div class="filters-grid">
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Curso</mat-label>
+            <mat-icon matPrefix class="field-icon">school</mat-icon>
+            <mat-select [(ngModel)]="cursoId" (selectionChange)="onCursoChange()">
+              <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">
+                {{ c.nombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Materia</mat-label>
+            <mat-icon matPrefix class="field-icon">menu_book</mat-icon>
+            <mat-select
+              [(ngModel)]="materiaId"
+              (selectionChange)="cargarTabla()"
+              [disabled]="!materiasAsignadas().length"
+            >
+              <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
+                {{ m.materiaNombre }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="custom-field search-field">
+            <mat-label>Buscar estudiante...</mat-label>
+            <mat-icon matPrefix class="field-icon">search</mat-icon>
+            <input matInput [(ngModel)]="q" (ngModelChange)="onSearchChange()" placeholder="Ej. Juan Pérez" />
+            <button *ngIf="q()" matSuffix mat-icon-button (click)="clearSearch()">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+
+        <div class="info-badges" *ngIf="cursoDetalle()">
+          <div class="badge-item">
+            <mat-icon>calendar_today</mat-icon>
+            <span>Año: <strong>{{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}</strong></span>
+          </div>
+          <div class="badge-item">
+            <mat-icon>supervisor_account</mat-icon>
+            <span>Tutor: <strong>{{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}</strong></span>
+          </div>
+          <div class="badge-item">
+            <mat-icon>groups</mat-icon>
+            <span>Estudiantes: <strong>{{ cursoDetalle()?.estudiantes?.length || 0 }}</strong></span>
+          </div>
         </div>
       </div>
 
-      <mat-divider class="soft-divider"></mat-divider>
+      <mat-progress-bar *ngIf="cargando()" mode="indeterminate" class="custom-loader"></mat-progress-bar>
 
-      <!-- Filtros -->
-      <div class="filters">
-        <!-- Curso -->
-        <mat-form-field appearance="outline" class="ff dense">
-          <mat-label>Curso</mat-label>
-          <mat-select [(ngModel)]="cursoId" name="cursoId" (selectionChange)="onCursoChange()">
-            <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">{{ c.nombre }}</mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <!-- Materia SIEMPRE visible, pero deshabilitada si no hay -->
-        <mat-form-field appearance="outline" class="ff dense">
-          <mat-label>Materia</mat-label>
-          <mat-select
-            [(ngModel)]="materiaId"
-            name="materiaId"
-            (selectionChange)="cargarTabla()"
-            [disabled]="!materiasAsignadas().length"
-          >
-            <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
-              {{ m.materiaNombre }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
-
-        <!-- Búsqueda -->
-        <mat-form-field appearance="outline" class="ff dense search">
-          <mat-label>Buscar estudiante</mat-label>
-          <input matInput [(ngModel)]="q" (ngModelChange)="onSearchChange()" placeholder="Escriba un nombre…" />
-          <button *ngIf="q()" matSuffix mat-icon-button aria-label="Limpiar" (click)="clearSearch()">
-            <mat-icon>close</mat-icon>
-          </button>
-          <mat-icon matPrefix>search</mat-icon>
-        </mat-form-field>
-      </div>
-
-      <div class="badges" *ngIf="cursoDetalle()">
-        <mat-chip-set>
-          <mat-chip appearance="outlined" color="primary">
-            Año: {{ cursoDetalle()?.anioLectivo?.nombre ?? cursoDetalle()?.anioLectivo }}
-          </mat-chip>
-          <mat-chip appearance="outlined">
-            Tutor: {{ cursoDetalle()?.profesorTutor?.nombre ?? cursoDetalle()?.profesorTutor }}
-          </mat-chip>
-          <mat-chip appearance="outlined">
-            {{ (cursoDetalle()?.estudiantes?.length || 0) }} estudiantes
-          </mat-chip>
-          <mat-chip appearance="outlined" *ngIf="showIds">cursoId={{cursoId}}</mat-chip>
-          <mat-chip appearance="outlined" *ngIf="showIds">anioId={{ anioLectivoId() }}</mat-chip>
-          <mat-chip appearance="outlined" *ngIf="showIds">materiaId={{ materiaId }}</mat-chip>
-        </mat-chip-set>
-      </div>
-
-      <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
-
-      <!-- Tabla -->
-      <div class="table-wrap" *ngIf="viewRows().length; else noRows">
-        <table mat-table [dataSource]="viewRows()" class="modern-table compact mat-elevation-z1">
-          <!-- # -->
+      <div class="data-container mat-elevation-z2" *ngIf="viewRows().length; else noRows">
+        <table mat-table [dataSource]="viewRows()" class="friendly-table">
+          
           <ng-container matColumnDef="n">
-            <th mat-header-cell *matHeaderCellDef class="sticky center">#</th>
-            <td mat-cell *matCellDef="let r; let i = index" class="muted center">{{ i + 1 }}</td>
+            <th mat-header-cell *matHeaderCellDef class="w-50 center-header">#</th>
+            <td mat-cell *matCellDef="let r; let i = index" class="w-50 center-cell text-muted">
+              {{ i + 1 }}
+            </td>
           </ng-container>
 
-          <!-- Estudiante -->
           <ng-container matColumnDef="est">
-            <th mat-header-cell *matHeaderCellDef class="sticky">Estudiante</th>
+            <th mat-header-cell *matHeaderCellDef>Estudiante</th>
             <td mat-cell *matCellDef="let r">
-              <div class="student-cell">
-                <div class="avatar">{{ r.estudianteNombre?.[0] || 'E' }}</div>
-                <div class="student-name" [matTooltip]="r.estudianteNombre">{{ r.estudianteNombre }}</div>
+              <div class="student-row">
+                <div class="avatar-circle">
+                  {{ r.estudianteNombre?.[0] || 'E' }}
+                </div>
+                <div class="student-info">
+                  <span class="student-name">{{ r.estudianteNombre }}</span>
+                </div>
               </div>
             </td>
           </ng-container>
 
-          <!-- Trimestres -->
           <ng-container matColumnDef="t1">
-            <th mat-header-cell *matHeaderCellDef class="sticky center">T1</th>
-            <td mat-cell *matCellDef="let r" class="center">
-              <div class="tri">
-                <span class="chip">Lab: {{ show(r.T1.diasLaborables) }}</span>
-                <span class="chip">FJ: {{ show(r.T1.fj) }}</span>
-                <span class="chip">FI: {{ show(r.T1.fi) }}</span>
-                <span class="chip strong">Asist: {{ show(r.T1.asistidos) }}</span>
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="center-header">Trimestre 1</th>
+            <td mat-cell *matCellDef="let r">
+              <ng-container *ngTemplateOutlet="triCell; context: { $implicit: r.T1 }"></ng-container>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="t2">
-            <th mat-header-cell *matHeaderCellDef class="sticky center">T2</th>
-            <td mat-cell *matCellDef="let r" class="center">
-              <div class="tri">
-                <span class="chip">Lab: {{ show(r.T2.diasLaborables) }}</span>
-                <span class="chip">FJ: {{ show(r.T2.fj) }}</span>
-                <span class="chip">FI: {{ show(r.T2.fi) }}</span>
-                <span class="chip strong">Asist: {{ show(r.T2.asistidos) }}</span>
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="center-header">Trimestre 2</th>
+            <td mat-cell *matCellDef="let r">
+              <ng-container *ngTemplateOutlet="triCell; context: { $implicit: r.T2 }"></ng-container>
             </td>
           </ng-container>
 
           <ng-container matColumnDef="t3">
-            <th mat-header-cell *matHeaderCellDef class="sticky center">T3</th>
-            <td mat-cell *matCellDef="let r" class="center">
-              <div class="tri">
-                <span class="chip">Lab: {{ show(r.T3.diasLaborables) }}</span>
-                <span class="chip">FJ: {{ show(r.T3.fj) }}</span>
-                <span class="chip">FI: {{ show(r.T3.fi) }}</span>
-                <span class="chip strong">Asist: {{ show(r.T3.asistidos) }}</span>
-              </div>
+            <th mat-header-cell *matHeaderCellDef class="center-header">Trimestre 3</th>
+            <td mat-cell *matCellDef="let r">
+              <ng-container *ngTemplateOutlet="triCell; context: { $implicit: r.T3 }"></ng-container>
             </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="cols"></tr>
-          <tr mat-row *matRowDef="let row; columns: cols" class="row"></tr>
+          <tr mat-row *matRowDef="let row; columns: cols" class="hover-row"></tr>
         </table>
       </div>
 
-      <ng-template #noRows>
-        <div class="empty">
-          <div class="empty-icon">🗓️</div>
-          <div class="empty-title">No hay datos para mostrar</div>
-          <div class="empty-sub">
-            Seleccione <b>Curso</b> y <b>Materia</b>, luego presione <i>Recargar</i>.
+      <ng-template #triCell let-data>
+        <div class="tri-grid">
+          <div class="stat-row">
+             <span class="stat-pill neutral" matTooltip="Días Laborables">
+               📅 {{ show(data.diasLaborables) }}
+             </span>
+             <span class="stat-pill success" matTooltip="Días Asistidos">
+               ✅ {{ show(data.asistidos) }}
+             </span>
+          </div>
+          <div class="stat-row">
+             <span class="stat-pill warning" matTooltip="Faltas Justificadas">
+               ⚠️ FJ: {{ show(data.fj) }}
+             </span>
+             <span class="stat-pill danger" matTooltip="Faltas Injustificadas">
+               ❌ FI: {{ show(data.fi) }}
+             </span>
           </div>
         </div>
       </ng-template>
-    </mat-card>
-  </div>
+
+      <ng-template #noRows>
+        <div class="empty-state">
+          <div class="illustration">🗓️</div>
+          <h3>Sin datos visibles</h3>
+          <p>Selecciona un <b>Curso</b> y una <b>Materia</b>, o ajusta tu búsqueda.</p>
+        </div>
+      </ng-template>
+
+    </div>
   `,
   styles: [`
-    .wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
-    .card { padding: 16px; border-radius: 16px; display: grid; gap: 12px; }
+    /* Animaciones y Variables */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    .header { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
-    .eyebrow { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; letter-spacing: .3px; opacity: .8; }
-    .title { margin: 0; font-size: 20px; font-weight: 700; }
-    .sub { margin: 0; opacity: .8; font-size: 12.5px; }
+    :host {
+      --primary-color: #3f51b5;
+      --text-main: #1f2937;
+      --text-secondary: #6b7280;
+      --bg-neutral: #f3f4f6;
+      --bg-success: #dcfce7; --text-success: #166534;
+      --bg-warning: #fef3c7; --text-warning: #92400e;
+      --bg-danger: #fee2e2; --text-danger: #991b1b;
+      --radius: 16px;
+    }
 
-    .filters { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 10px; align-items: end; }
-    .ff { width: 100%; }
-    .dense .mat-mdc-form-field-infix { padding-top: 6px !important; padding-bottom: 6px !important; }
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+      font-family: 'Roboto', sans-serif;
+    }
 
-    .table-wrap { margin-top: 6px; overflow: auto; border-radius: 12px; border: 1px solid #EAEAEA; }
-    table { width: 100%; font-size: 13px; }
-    .modern-table th { background: #F9FAFB; font-weight: 600; color: #2f2f2f; }
-    .modern-table th, .modern-table td { padding: 6px 10px; }
-    .center { text-align: center; }
-    .muted { opacity: .7; }
+    /* Header */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .main-title {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .refresh-btn { color: var(--text-secondary); }
 
-    .student-cell { display: flex; align-items: center; gap: 8px; min-width: 200px; }
-    .avatar { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #EEF2FF; font-weight: 700; font-size: 11px; }
+    /* Panel de Control */
+    .control-panel {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 24px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      align-items: center;
+    }
+    .custom-field { width: 100%; }
+    .field-icon { color: var(--text-secondary); margin-right: 8px; }
+    ::ng-deep .custom-field .mat-mdc-form-field-subscript-wrapper { display: none; }
+    
+    /* Search specific */
+    .search-field input { color: var(--text-main); }
 
-    .tri { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
-    .chip { display: inline-block; padding: 2px 8px; border-radius: 10px; background: #EEE; font-variant-numeric: tabular-nums; }
-    .chip.strong { font-weight: 700; background: #EAF5FF; }
-    .badges { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    /* Badges Info */
+    .info-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed #e5e7eb;
+    }
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-neutral);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .badge-item mat-icon { font-size: 18px; width: 18px; height: 18px; opacity: 0.7; }
+    .badge-item strong { color: var(--text-main); }
 
-    .empty { padding: 28px 14px; text-align: center; color: #555; }
-    .empty-icon { font-size: 40px; }
-    .empty-title { font-weight: 700; }
+    /* Tabla */
+    .data-container {
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+    .friendly-table { width: 100%; }
+    .friendly-table th {
+      background: #f9fafb;
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 16px;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+    .friendly-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid #f3f4f6;
+      color: var(--text-main);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    .hover-row:hover { background-color: #f9fafb; }
+    .center-header { text-align: center; }
+    .center-cell { text-align: center; }
+
+    /* Estudiante Avatar */
+    .student-row { display: flex; align-items: center; gap: 12px; }
+    .avatar-circle {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .student-name { font-weight: 500; line-height: 1.2; display: block; }
+    .w-50 { width: 50px; min-width: 50px; }
+    .text-muted { color: var(--text-secondary); }
+
+    /* Grilla dentro de celda (TriGrid) */
+    .tri-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      align-items: center;
+    }
+    .stat-row {
+      display: flex;
+      gap: 6px;
+    }
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      min-width: 65px;
+      border: 1px solid transparent;
+    }
+    .stat-pill.neutral { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
+    .stat-pill.success { background: var(--bg-success); color: var(--text-success); }
+    .stat-pill.warning { background: var(--bg-warning); color: var(--text-warning); }
+    .stat-pill.danger  { background: var(--bg-danger);  color: var(--text-danger); }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      background: #fff; border-radius: var(--radius);
+      border: 2px dashed #e5e7eb; color: var(--text-secondary);
+    }
+    .illustration { font-size: 48px; margin-bottom: 16px; opacity: 0.8; }
+    .empty-state h3 { margin: 0 0 8px; color: var(--text-main); font-weight: 700; }
+    .custom-loader { height: 4px; }
 
     @media (max-width: 900px) {
-      .filters { grid-template-columns: 1fr 1fr; }
+      .filters-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 600px) {
-      .filters { grid-template-columns: 1fr; }
-      .header { grid-template-columns: 1fr; }
+      .filters-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; gap: 16px; }
+      .stat-row { flex-wrap: wrap; justify-content: center; }
     }
   `]
 })
@@ -249,6 +389,8 @@ export class ProfesorAsistenciasResumenComponent implements OnInit {
   cols = ['n','est','t1','t2','t3'];
   rows = signal<RowVM[]>([]);
   q = signal<string>('');
+  
+  // Ocultamos IDs para limpiar la vista
   showIds = false;
 
   // ===== Ciclo =====

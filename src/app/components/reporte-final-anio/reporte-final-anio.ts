@@ -15,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { firstValueFrom } from 'rxjs';
 
-// Servicios
+// Servicios (Asumiendo que las rutas son correctas)
 import { CursoService } from '../../services/curso.service';
 import { EstudianteService, Estudiante } from '../../services/estudiante.service';
 import { CalificacionService, Trimestre as TriNotas } from '../../services/calificacion.service';
@@ -58,214 +58,373 @@ type RowVM = {
     MatTooltipModule,
   ],
   template: `
-    <div class="wrap">
-      <mat-card class="card">
-        <div class="header">
-          <div class="title-block">
-            <h2 class="title">📑 Notas Finales por Año Lectivo</h2>
-            <p class="sub">
-              Seleccione el <b>Año Lectivo</b> y el <b>Estudiante</b> para consultar sus notas finales
-              (promedio de T1, T2 y T3 por materia).
-            </p>
-          </div>
-          <div class="actions">
-            <button
-              mat-flat-button
-              color="primary"
-              (click)="imprimirPdf()"
-              [disabled]="!rows().length || cargando() || !estId"
-            >
-              <mat-icon>picture_as_pdf</mat-icon>
-              Imprimir PDF
-            </button>
-          </div>
+    <div class="main-container animate__animated animate__fadeIn">
+      
+      <div class="header-section">
+        <div>
+          <h1 class="page-title">
+            <mat-icon class="title-icon">analytics</mat-icon>
+            Reporte Final Anual
+          </h1>
+          <p class="page-subtitle">Consulta y descarga el consolidado de notas por estudiante.</p>
         </div>
+        
+        <button
+          mat-flat-button
+          class="btn-print"
+          (click)="imprimirPdf()"
+          [disabled]="!rows().length || cargando() || !estId"
+        >
+          <mat-icon>print</mat-icon>
+          Generar PDF
+        </button>
+      </div>
 
-        <div class="filters">
-          <!-- Año lectivo -->
-          <mat-form-field appearance="outline" class="ff">
-            <mat-label>Año lectivo</mat-label>
-            <mat-select [(ngModel)]="anioId" (selectionChange)="onAnioChange()">
-              <mat-option *ngFor="let a of aniosLectivos()" [value]="a.id">
-                {{ a.nombre }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+      <mat-card class="content-card">
+        
+        <div class="filter-bar">
+          <div class="filter-grid">
+            <mat-form-field appearance="outline" class="custom-field">
+              <mat-label>📅 Año Lectivo</mat-label>
+              <mat-select [(ngModel)]="anioId" (selectionChange)="onAnioChange()">
+                <mat-option *ngFor="let a of aniosLectivos()" [value]="a.id">
+                  {{ a.nombre }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
 
-          <!-- Estudiante (con búsqueda interna en el panel) -->
-          <mat-form-field appearance="outline" class="ff" *ngIf="anioId">
-            <mat-label>Estudiante</mat-label>
-            <mat-select
-              [(ngModel)]="estId"
-              (selectionChange)="onEstudianteChange()"
-              panelClass="estudiante-panel"
-            >
-              <!-- Input de búsqueda dentro del panel -->
-              <mat-option>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o cédula"
-                  class="select-search-input"
-                  [ngModel]="estSearch()"
-                  (ngModelChange)="estSearch.set($event || '')"
-                  (click)="$event.stopPropagation()"
-                  (keydown)="$event.stopPropagation()"
-                />
-              </mat-option>
-
-              <!-- Opciones filtradas -->
-              <mat-option
-                *ngFor="let e of estudiantesFiltrados()"
-                [value]="asId(e._id ?? e.uid)"
+            <mat-form-field appearance="outline" class="custom-field" *ngIf="anioId">
+              <mat-label>🎓 Estudiante</mat-label>
+              <mat-select
+                [(ngModel)]="estId"
+                (selectionChange)="onEstudianteChange()"
+                panelClass="estudiante-panel-custom"
+                placeholder="Seleccione un estudiante"
               >
-                {{ e.nombre }} - {{ e.cedula }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+                <mat-option class="search-option">
+                  <div class="search-box">
+                    <mat-icon>search</mat-icon>
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre o cédula..."
+                      [ngModel]="estSearch()"
+                      (ngModelChange)="estSearch.set($event || '')"
+                      (click)="$event.stopPropagation()"
+                      (keydown)="$event.stopPropagation()"
+                    />
+                  </div>
+                </mat-option>
+
+                <mat-option
+                  *ngFor="let e of estudiantesFiltrados()"
+                  [value]="asId(e._id ?? e.uid)"
+                >
+                  <div class="student-option">
+                    <span class="st-name">{{ e.nombre }}</span>
+                    <span class="st-cedula">{{ e.cedula }}</span>
+                  </div>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
 
-        <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
+        <mat-progress-bar *ngIf="cargando()" mode="indeterminate" class="loader-top"></mat-progress-bar>
 
-        <!-- Tabla de notas finales -->
-        <div class="table-wrap" *ngIf="rows().length; else noData">
-          <table mat-table [dataSource]="rows()" class="modern-table mat-elevation-z2">
+        <div class="table-container" *ngIf="rows().length; else noData">
+          <table mat-table [dataSource]="rows()" class="modern-table">
 
-            <!-- Materia -->
             <ng-container matColumnDef="materia">
-              <th mat-header-cell *matHeaderCellDef>Materia</th>
-              <td mat-cell *matCellDef="let r">
-                <span [matTooltip]="r.materiaNombre">{{ r.materiaNombre }}</span>
+              <th mat-header-cell *matHeaderCellDef class="col-materia"> ASIGNATURA </th>
+              <td mat-cell *matCellDef="let r" class="cell-materia">
+                <span class="materia-text">{{ r.materiaNombre }}</span>
               </td>
             </ng-container>
 
-            <!-- T1 -->
             <ng-container matColumnDef="t1">
-              <th mat-header-cell *matHeaderCellDef class="center">T1</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                {{ fmt(r.t1) }}
-              </td>
+              <th mat-header-cell *matHeaderCellDef class="col-num"> T1 </th>
+              <td mat-cell *matCellDef="let r" class="col-num text-secondary"> {{ fmt(r.t1) }} </td>
             </ng-container>
 
-            <!-- T2 -->
             <ng-container matColumnDef="t2">
-              <th mat-header-cell *matHeaderCellDef class="center">T2</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                {{ fmt(r.t2) }}
-              </td>
+              <th mat-header-cell *matHeaderCellDef class="col-num"> T2 </th>
+              <td mat-cell *matCellDef="let r" class="col-num text-secondary"> {{ fmt(r.t2) }} </td>
             </ng-container>
 
-            <!-- T3 -->
             <ng-container matColumnDef="t3">
-              <th mat-header-cell *matHeaderCellDef class="center">T3</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                {{ fmt(r.t3) }}
-              </td>
+              <th mat-header-cell *matHeaderCellDef class="col-num"> T3 </th>
+              <td mat-cell *matCellDef="let r" class="col-num text-secondary"> {{ fmt(r.t3) }} </td>
             </ng-container>
 
-            <!-- Final -->
             <ng-container matColumnDef="final">
-              <th mat-header-cell *matHeaderCellDef class="center">Final</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                <span class="pill" [class.good]="isOK(r.final)" [class.bad]="isBad(r.final)">
+              <th mat-header-cell *matHeaderCellDef class="col-num"> PROMEDIO </th>
+              <td mat-cell *matCellDef="let r" class="col-num">
+                <span class="grade-badge" [class.pass]="isOK(r.final)" [class.fail]="isBad(r.final)">
                   {{ fmt(r.final) }}
                 </span>
               </td>
             </ng-container>
 
             <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols"></tr>
+            <tr mat-row *matRowDef="let row; columns: cols" class="hover-row"></tr>
           </table>
 
-          <!-- Fila resumen promedio del año -->
-          <div class="footer">
-            <div class="footer-label">Promedio general del año lectivo:</div>
-            <div
-              class="footer-value"
-              [class.bad]="isBad(promedioGeneral())"
-              [class.good]="isOK(promedioGeneral())"
+          <div class="summary-footer">
+            <span class="summary-label">Promedio General Anual:</span>
+            <span
+              class="summary-value"
+              [class.pass-text]="isOK(promedioGeneral())"
+              [class.fail-text]="isBad(promedioGeneral())"
             >
               {{ fmt(promedioGeneral()) }}
-            </div>
+            </span>
           </div>
         </div>
 
         <ng-template #noData>
-          <div class="empty" *ngIf="anioId && estId && !cargando()">
-            <div class="empty-icon">📭</div>
-            <div class="empty-title">Sin datos de notas finales</div>
-            <div class="empty-sub">
-              No se encontraron notas para este estudiante en el año lectivo seleccionado.
-            </div>
+          <div class="empty-state" *ngIf="!cargando()">
+            <ng-container *ngIf="!anioId || !estId; else noResults">
+              <div class="empty-img">👆</div>
+              <h3>Comience seleccionando los filtros</h3>
+              <p>Elija un año lectivo y un estudiante para visualizar sus calificaciones.</p>
+            </ng-container>
+            <ng-template #noResults>
+              <div class="empty-img">📭</div>
+              <h3>Sin registros encontrados</h3>
+              <p>No hay notas registradas para este estudiante en el periodo seleccionado.</p>
+            </ng-template>
           </div>
         </ng-template>
+
       </mat-card>
     </div>
   `,
   styles: [`
-    .wrap { padding: 16px; max-width: 1100px; margin: 0 auto; }
-    .card { padding: 16px; border-radius: 12px; display: grid; gap: 14px; }
-    .header { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-    .title { margin: 0; font-size: 20px; font-weight: 700; }
-    .sub { margin: 0; font-size: 13px; opacity: .8; }
-    .actions { display: inline-flex; gap: 8px; align-items: center; }
-    .filters { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px; align-items: end; }
-    .ff { width: 100%; }
+    /* --- Layout General --- */
+    .main-container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 0 16px;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    .select-search-input {
+    /* --- Header --- */
+    .header-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .page-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title-icon {
+      color: #4f46e5; /* Índigo */
+      transform: scale(1.2);
+    }
+    .page-subtitle {
+      margin: 4px 0 0 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .btn-print {
+      background-color: #4f46e5; /* Color primario moderno */
+      color: white;
+      border-radius: 8px;
+      padding: 0 24px;
+      height: 42px;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+      transition: all 0.2s;
+    }
+    .btn-print:hover:not([disabled]) {
+      background-color: #4338ca;
+      transform: translateY(-1px);
+    }
+
+    /* --- Tarjeta Contenedora --- */
+    .content-card {
+      border-radius: 16px;
+      padding: 0 !important; /* Reset padding para controlar hijos */
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+      background: white;
+      border: 1px solid #f3f4f6;
+    }
+
+    /* --- Filtros --- */
+    .filter-bar {
+      background-color: #f9fafb;
+      padding: 24px 24px 8px 24px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .custom-field {
       width: 100%;
-      padding: 4px 8px;
+    }
+    /* Overrides para inputs más limpios */
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper { display: none; } /* Ocultar espacio extra si no hay error */
+
+    /* --- Tabla --- */
+    .table-container {
+      padding: 0;
+    }
+    .modern-table {
+      width: 100%;
+    }
+    .modern-table th {
+      background-color: #ffffff;
+      color: #6b7280;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+      padding: 16px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .modern-table td {
+      padding: 16px;
+      font-size: 14px;
+      color: #111827;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .hover-row:hover {
+      background-color: #f9fafb;
+    }
+    
+    .col-materia { text-align: left; width: 40%; }
+    .cell-materia { font-weight: 500; }
+    .col-num { text-align: center; width: 15%; }
+    .text-secondary { color: #6b7280; }
+
+    /* --- Badges de Notas --- */
+    .grade-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-weight: 700;
       font-size: 13px;
-      box-sizing: border-box;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      outline: none;
+      min-width: 40px;
     }
-    .select-search-input:focus {
-      border-color: #3f51b5;
+    .grade-badge.pass {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .grade-badge.fail {
+      background-color: #fee2e2;
+      color: #991b1b;
     }
 
-    .table-wrap { margin-top: 10px; border-radius: 12px; border: 1px solid #e0e0e0; overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; }
-    .modern-table th { background: #f9fafb; font-weight: 600; }
-    .modern-table th, .modern-table td { padding: 6px 10px; font-size: 13px; }
-    .center { text-align: center; }
-
-    .pill {
-      display: inline-block;
-      min-width: 44px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: #eee;
-    }
-    .pill.good { background: #e6f5e9; }
-    .pill.bad { background: #fdecea; }
-
-    .footer {
+    /* --- Footer Resumen --- */
+    .summary-footer {
+      background-color: #f8fafc;
+      padding: 16px 24px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-top: 1px solid #e0e0e0;
-      background: #fafafa;
+      gap: 12px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .summary-label {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .summary-value {
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .pass-text { color: #166534; }
+    .fail-text { color: #dc2626; }
+
+    /* --- Empty State --- */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: #9ca3af;
+    }
+    .empty-img {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.8;
+    }
+    .empty-state h3 {
+      font-size: 18px;
+      color: #374151;
+      margin: 0 0 8px 0;
+      font-weight: 600;
+    }
+    .empty-state p {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    /* --- Estilos para el Buscador dentro del Select --- */
+    .search-option {
+      height: 50px !important;
+      padding: 0 8px !important;
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+      border-bottom: 1px solid #eee;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: #f3f4f6;
+      border-radius: 6px;
+      padding: 0 8px;
+      height: 36px;
+      margin-top: 7px;
+    }
+    .search-box mat-icon { font-size: 20px; width: 20px; height: 20px; color: #9ca3af; margin-right: 8px;}
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      width: 100%;
       font-size: 13px;
+      color: #374151;
     }
-    .footer-label { font-weight: 600; }
-    .footer-value { font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #eee; }
-    .footer-value.good { background: #e6f5e9; }
-    .footer-value.bad { background: #fdecea; }
-
-    .empty { padding: 24px; text-align: center; color: #666; }
-    .empty-icon { font-size: 32px; }
-    .empty-title { font-weight: 700; margin-top: 4px; }
-    .empty-sub { font-size: 13px; }
-
-    @media (max-width: 700px) {
-      .filters { grid-template-columns: 1fr; }
-      .header { grid-template-columns: 1fr; }
-      .actions { justify-content: flex-start; }
+    
+    .student-option {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      padding: 4px 0;
     }
-  `],
+    .st-name { font-size: 14px; font-weight: 500; }
+    .st-cedula { font-size: 11px; color: #9ca3af; }
+    
+    .loader-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      border-radius: 16px 16px 0 0;
+    }
+
+    /* Media query basico */
+    @media (max-width: 600px) {
+      .header-section { flex-direction: column; align-items: flex-start; }
+      .btn-print { width: 100%; }
+      .modern-table th, .modern-table td { padding: 12px 8px; }
+    }
+  `]
 })
 export class ReporteFinalAnioComponent implements OnInit {
   private sb = inject(MatSnackBar);
@@ -700,6 +859,6 @@ export class ReporteFinalAnioComponent implements OnInit {
     };
 
     const pdf = pdfMake.createPdf(docDef);
-    pdf.open(); // abre nueva pestaña, no descarga automática
+    pdf.open(); // abre nueva pestaña
   }
 }

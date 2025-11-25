@@ -7,12 +7,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+// Se elimina MatSnackBarModule ya que usaremos SweetAlert2
 import { MatIconModule } from '@angular/material/icon';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+
+import Swal from 'sweetalert2'; // Importamos SweetAlert2
 
 import { AuthService } from '../../services/auth.service';
 import { CursoService } from '../../services/curso.service';
@@ -47,7 +49,7 @@ type RowVM = {
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatSnackBarModule,
+    // MatSnackBarModule eliminado
     MatIconModule,
     MatDividerModule,
     MatTableModule,
@@ -55,517 +57,579 @@ type RowVM = {
     MatTooltipModule,
   ],
   template: `
-    <div class="wrap">
-      <mat-card class="card">
-        <div class="header">
-          <div class="title-block">
-            <div class="eyebrow">
-              <mat-icon>grading</mat-icon>
-              Registro de calificaciones y asistencias
-            </div>
-            <h2 class="title">Notas y Asistencia por Curso (Trimestral)</h2>
-            <p class="sub">
-              Ingrese la <b>Nota Trimestral (0–10)</b> y las
-              <b>faltas justificadas / injustificadas</b> por estudiante.
+    <div class="main-container">
+      <div class="content-wrapper">
+        
+        <div class="page-header">
+          <div class="header-icon">
+            <mat-icon>school</mat-icon>
+          </div>
+          <div class="header-text">
+            <h1 class="page-title">Gestión de Calificaciones</h1>
+            <p class="page-subtitle">
+              Administra notas trimestrales y asistencias de tus cursos asignados.
             </p>
           </div>
         </div>
 
-        <mat-divider class="soft-divider"></mat-divider>
+        <mat-card class="modern-card">
+          <div class="controls-section">
+            <div class="filters-grid">
+              <div class="filter-item">
+                <mat-form-field appearance="outline" class="modern-input">
+                  <mat-label>Seleccionar Curso</mat-label>
+                  <mat-select
+                    [(ngModel)]="cursoId"
+                    name="cursoId"
+                    (selectionChange)="onCursoChange()"
+                    required
+                  >
+                    <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">
+                      {{ c.nombre }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix class="input-icon">class</mat-icon>
+                </mat-form-field>
+              </div>
 
-        <div class="filters">
-          <!-- Curso -->
-          <mat-form-field appearance="outline" class="ff dense">
-            <mat-label>Curso</mat-label>
-            <mat-select
-              [(ngModel)]="cursoId"
-              name="cursoId"
-              (selectionChange)="onCursoChange()"
-              required
-            >
-              <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">{{
-                c.nombre
-              }}</mat-option>
-            </mat-select>
-          </mat-form-field>
+              <div class="filter-item">
+                <mat-form-field appearance="outline" class="modern-input">
+                  <mat-label>Materia</mat-label>
+                  <mat-select
+                    [(ngModel)]="materiaId"
+                    name="materiaId"
+                    (selectionChange)="cargarTabla()"
+                    [disabled]="!materiasAsignadas().length"
+                    required
+                  >
+                    <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
+                      {{ m.materiaNombre }}
+                    </mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix class="input-icon">menu_book</mat-icon>
+                </mat-form-field>
+              </div>
 
-          <!-- Materia siempre visible -->
-          <mat-form-field appearance="outline" class="ff dense">
-            <mat-label>Materia</mat-label>
-            <mat-select
-              [(ngModel)]="materiaId"
-              name="materiaId"
-              (selectionChange)="cargarTabla()"
-              [disabled]="!materiasAsignadas().length"
-              required
-            >
-              <mat-option *ngFor="let m of materiasAsignadas()" [value]="m.materiaId">
-                {{ m.materiaNombre }}
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+              <div class="filter-item">
+                <mat-form-field appearance="outline" class="modern-input">
+                  <mat-label>Periodo</mat-label>
+                  <mat-select
+                    [(ngModel)]="trimestre"
+                    name="trimestre"
+                    (selectionChange)="cargarTabla()"
+                    required
+                  >
+                    <mat-option [value]="'T1'">Primer Trimestre</mat-option>
+                    <mat-option [value]="'T2'">Segundo Trimestre</mat-option>
+                    <mat-option [value]="'T3'">Tercer Trimestre</mat-option>
+                  </mat-select>
+                  <mat-icon matPrefix class="input-icon">calendar_today</mat-icon>
+                </mat-form-field>
+              </div>
 
-          <!-- Trimestre -->
-          <mat-form-field appearance="outline" class="ff dense">
-            <mat-label>Trimestre</mat-label>
-            <mat-select
-              [(ngModel)]="trimestre"
-              name="trimestre"
-              (selectionChange)="cargarTabla()"
-              required
-            >
-              <mat-option [value]="'T1'">Primer Trimestre</mat-option>
-              <mat-option [value]="'T2'">Segundo Trimestre</mat-option>
-              <mat-option [value]="'T3'">Tercer Trimestre</mat-option>
-            </mat-select>
-          </mat-form-field>
-
-          <!-- Búsqueda -->
-          <mat-form-field appearance="outline" class="ff dense search">
-            <mat-label>Buscar estudiante</mat-label>
-            <input
-              matInput
-              [ngModel]="q()"
-              (ngModelChange)="q.set($event); onSearchChange()"
-              placeholder="Escriba un nombre…"
-            />
-            <button
-              *ngIf="q()"
-              matSuffix
-              mat-icon-button
-              aria-label="Limpiar búsqueda"
-              (click)="clearSearch()"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-            <mat-icon matPrefix>search</mat-icon>
-          </mat-form-field>
-        </div>
-
-        <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
-
-        <div class="table-wrap" *ngIf="viewRows().length; else noRows">
-          <!-- Días laborables -->
-          <div class="asis-bar">
-            <mat-form-field appearance="outline" class="size-ff dense">
-              <mat-label>Días laborables del trimestre</mat-label>
-              <input matInput type="number" min="0" [(ngModel)]="diasLaborables" />
-            </mat-form-field>
-            <span class="asis-hint">
-              Se aplica a todo el curso para esta materia y trimestre.
-            </span>
+              <div class="filter-item search-item">
+                <mat-form-field appearance="outline" class="modern-input search-input">
+                  <mat-label>Buscar estudiante...</mat-label>
+                  <input
+                    matInput
+                    [ngModel]="q()"
+                    (ngModelChange)="q.set($event); onSearchChange()"
+                    placeholder="Nombre..."
+                  />
+                  <mat-icon matPrefix class="input-icon">search</mat-icon>
+                  <button
+                    *ngIf="q()"
+                    matSuffix
+                    mat-icon-button
+                    aria-label="Limpiar"
+                    (click)="clearSearch()"
+                  >
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </mat-form-field>
+              </div>
+            </div>
           </div>
 
-          <table
-            mat-table
-            [dataSource]="viewRows()"
-            class="modern-table compact mat-elevation-z1"
-            aria-label="Tabla de estudiantes, notas y asistencias"
-          >
-            <!-- # -->
-            <ng-container matColumnDef="n">
-              <th mat-header-cell *matHeaderCellDef class="sticky center">#</th>
-              <td mat-cell *matCellDef="let r; let i = index" class="muted center">
-                {{ pageStart() + i + 1 }}
-              </td>
-            </ng-container>
+          <mat-progress-bar *ngIf="cargando()" mode="indeterminate" class="loader"></mat-progress-bar>
 
-            <!-- Estudiante -->
-            <ng-container matColumnDef="est">
-              <th mat-header-cell *matHeaderCellDef class="sticky">Estudiante</th>
-              <td mat-cell *matCellDef="let r">
-                <div class="student-cell">
-                  <div class="avatar" aria-hidden="true">
-                    {{ r.estudianteNombre?.[0] || 'E' }}
-                  </div>
-                  <div class="student-name" [matTooltip]="r.estudianteNombre">
-                    {{ r.estudianteNombre }}
-                  </div>
-                </div>
-              </td>
-            </ng-container>
-
-            <!-- Nota -->
-            <ng-container matColumnDef="prom">
-              <th mat-header-cell *matHeaderCellDef class="sticky">Nota Trimestral</th>
-              <td mat-cell *matCellDef="let r">
-                <mat-form-field appearance="outline" class="cell-ff dense">
-                  <mat-label>0 a 10</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    inputmode="decimal"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    [(ngModel)]="r.promedioTrimestral"
-                    (ngModelChange)="onNotaChange(r)"
-                  />
-                </mat-form-field>
-              </td>
-            </ng-container>
-
-            <!-- Faltas justificadas -->
-            <ng-container matColumnDef="fj">
-              <th mat-header-cell *matHeaderCellDef class="sticky center">F. just.</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                <mat-form-field appearance="outline" class="cell-ff dense">
-                  <mat-label>Fj</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    min="0"
-                    [(ngModel)]="r.faltasJustificadas"
-                    (ngModelChange)="onFaltasChange(r)"
-                  />
-                </mat-form-field>
-              </td>
-            </ng-container>
-
-            <!-- Faltas injustificadas -->
-            <ng-container matColumnDef="fi">
-              <th mat-header-cell *matHeaderCellDef class="sticky center">F. injust.</th>
-              <td mat-cell *matCellDef="let r" class="center">
-                <mat-form-field appearance="outline" class="cell-ff dense">
-                  <mat-label>Fi</mat-label>
-                  <input
-                    matInput
-                    type="number"
-                    min="0"
-                    [(ngModel)]="r.faltasInjustificadas"
-                    (ngModelChange)="onFaltasChange(r)"
-                  />
-                </mat-form-field>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="cols"></tr>
-            <tr mat-row *matRowDef="let row; columns: cols" class="row"></tr>
-          </table>
-
-          <div class="table-footer">
-            <div class="pager">
-              <div class="range">
-                Mostrando {{ pageStart() + 1 }}–{{ pageEnd() }} de {{ filteredCount() }}
-              </div>
-              <div class="pager-controls">
-                <mat-form-field appearance="outline" class="size-ff dense">
-                  <mat-label>Filas</mat-label>
-                  <mat-select [(ngModel)]="pageSize" (selectionChange)="onPageSizeChange()">
-                    <mat-option [value]="10">10</mat-option>
-                    <mat-option [value]="25">25</mat-option>
-                    <mat-option [value]="50">50</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <button
-                  mat-icon-button
-                  (click)="firstPage()"
-                  [disabled]="pageIndex() === 0"
-                  aria-label="Primera página"
-                >
-                  <mat-icon>first_page</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="prevPage()"
-                  [disabled]="pageIndex() === 0"
-                  aria-label="Página anterior"
-                >
-                  <mat-icon>chevron_left</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="nextPage()"
-                  [disabled]="pageIndex() + 1 >= totalPages()"
-                  aria-label="Página siguiente"
-                >
-                  <mat-icon>chevron_right</mat-icon>
-                </button>
-                <button
-                  mat-icon-button
-                  (click)="lastPage()"
-                  [disabled]="pageIndex() + 1 >= totalPages()"
-                  aria-label="Última página"
-                >
-                  <mat-icon>last_page</mat-icon>
-                </button>
+          <div *ngIf="viewRows().length; else noRows">
+            
+            <div class="info-bar">
+              <mat-icon class="info-icon">info</mat-icon>
+              <span class="info-text">
+                Ingrese <strong>Días Laborables</strong> para el cálculo global de asistencia del curso:
+              </span>
+              <div class="labor-input-wrapper">
+                <input 
+                  type="number" 
+                  class="native-input" 
+                  min="0" 
+                  placeholder="0"
+                  [(ngModel)]="diasLaborables" 
+                />
+                <span class="suffix">días</span>
               </div>
             </div>
 
-            <div class="footer-actions">              
-              <button
-                mat-flat-button
-                color="primary"
-                class="btn-primary"
-                (click)="guardarTodo()"
-                [disabled]="guardando() || !rows().length"
+            <div class="table-responsive">
+              <table
+                mat-table
+                [dataSource]="viewRows()"
+                class="modern-table"
               >
-                <mat-icon>save</mat-icon>
-                {{ guardando() ? 'Guardando…' : 'Guardar todo' }}
+                <ng-container matColumnDef="n">
+                  <th mat-header-cell *matHeaderCellDef class="col-xs center">#</th>
+                  <td mat-cell *matCellDef="let r; let i = index" class="col-xs center text-muted">
+                    {{ pageStart() + i + 1 }}
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="est">
+                  <th mat-header-cell *matHeaderCellDef class="col-main">Estudiante</th>
+                  <td mat-cell *matCellDef="let r" class="col-main">
+                    <div class="student-info">
+                      <div class="avatar gradient-avatar">
+                        {{ r.estudianteNombre?.[0] || 'E' }}
+                      </div>
+                      <div class="name-col">
+                        <span class="student-name">{{ r.estudianteNombre }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="prom">
+                  <th mat-header-cell *matHeaderCellDef class="col-input center header-highlight">
+                    Nota (0-10)
+                  </th>
+                  <td mat-cell *matCellDef="let r" class="col-input center cell-highlight">
+                    <div class="input-wrapper">
+                      <input
+                        type="number"
+                        class="grid-input"
+                        min="0"
+                        step="0.01"
+                        placeholder="-"
+                        [(ngModel)]="r.promedioTrimestral"
+                        (ngModelChange)="onNotaChange(r)"
+                        [class.filled]="r.promedioTrimestral !== null"
+                        [class.input-error]="r.promedioTrimestral != null && (r.promedioTrimestral > 10 || r.promedioTrimestral < 0)"
+                      />
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="fj">
+                  <th mat-header-cell *matHeaderCellDef class="col-input center">F. Justif.</th>
+                  <td mat-cell *matCellDef="let r" class="col-input center">
+                    <div class="input-wrapper">
+                      <input
+                        type="number"
+                        class="grid-input"
+                        min="0"
+                        placeholder="0"
+                        [(ngModel)]="r.faltasJustificadas"
+                        (ngModelChange)="onFaltasChange(r)"
+                      />
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="fi">
+                  <th mat-header-cell *matHeaderCellDef class="col-input center">F. Injust.</th>
+                  <td mat-cell *matCellDef="let r" class="col-input center">
+                    <div class="input-wrapper">
+                      <input
+                        type="number"
+                        class="grid-input"
+                        min="0"
+                        placeholder="0"
+                        [(ngModel)]="r.faltasInjustificadas"
+                        (ngModelChange)="onFaltasChange(r)"
+                      />
+                    </div>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="cols; sticky: true"></tr>
+                <tr mat-row *matRowDef="let row; columns: cols" class="hover-row"></tr>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <div class="pagination-info">
+                <span class="text-muted">
+                  Mostrando {{ pageStart() + 1 }} – {{ pageEnd() }} de <strong>{{ filteredCount() }}</strong>
+                </span>
+              </div>
+              
+              <div class="pagination-controls">
+                 <button mat-icon-button (click)="firstPage()" [disabled]="pageIndex() === 0">
+                   <mat-icon>first_page</mat-icon>
+                 </button>
+                 <button mat-icon-button (click)="prevPage()" [disabled]="pageIndex() === 0">
+                   <mat-icon>chevron_left</mat-icon>
+                 </button>
+                 <span class="page-number">Página {{ pageIndex() + 1 }}</span>
+                 <button mat-icon-button (click)="nextPage()" [disabled]="pageIndex() + 1 >= totalPages()">
+                   <mat-icon>chevron_right</mat-icon>
+                 </button>
+                 <button mat-icon-button (click)="lastPage()" [disabled]="pageIndex() + 1 >= totalPages()">
+                   <mat-icon>last_page</mat-icon>
+                 </button>
+              </div>
+
+              <div class="action-area">
+                <button
+                  mat-flat-button
+                  color="primary"
+                  class="save-btn"
+                  (click)="guardarTodo()"
+                  [disabled]="guardando() || !rows().length"
+                >
+                  <mat-icon>save</mat-icon>
+                  {{ guardando() ? 'Guardando...' : 'Guardar Todo' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noRows>
+            <div class="empty-state">
+              <div class="empty-illustration">📝</div>
+              <h3>Seleccione los datos requeridos</h3>
+              <p>Elija un curso, materia y trimestre para comenzar a registrar calificaciones.</p>
+              <button mat-stroked-button color="primary" (click)="recargar()" class="refresh-btn">
+                <mat-icon>refresh</mat-icon> Actualizar datos
               </button>
             </div>
-          </div>
-        </div>
+          </ng-template>
 
-        <ng-template #noRows>
-          <div class="empty">
-            <div class="empty-icon">📋</div>
-            <div class="empty-title">No hay estudiantes cargados</div>
-            <div class="empty-sub">
-              Seleccione <b>Curso</b>, <b>Materia</b> y <b>Trimestre</b> para visualizar la tabla.
-            </div>
-            <button mat-stroked-button class="btn-outline mt-8" (click)="recargar()">
-              <mat-icon>refresh</mat-icon>
-              Intentar de nuevo
-            </button>
-          </div>
-        </ng-template>
-      </mat-card>
+        </mat-card>
+      </div>
     </div>
   `,
   styles: [
     `
-      .wrap {
-        padding: 16px;
-        max-width: 1100px;
+      :host {
+        --primary: #3f51b5;
+        --primary-light: #e8eaf6;
+        --text-dark: #1f2937;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+        --bg-page: #f3f4f6;
+        --bg-card: #ffffff;
+        --error-color: #ef4444;
+        --error-bg: #fef2f2;
+      }
+
+      /* Layout Containers */
+      .main-container {
+        background-color: var(--bg-page);
+        min-height: 100%;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      .content-wrapper {
+        max-width: 1200px;
         margin: 0 auto;
       }
-      .card {
-        padding: 16px;
-        border-radius: 16px;
-        display: grid;
-        gap: 12px;
-      }
-      .header {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        gap: 10px;
-        align-items: center;
-      }
-      .title-block .eyebrow {
-        display: inline-flex;
-        gap: 6px;
-        align-items: center;
-        font-size: 12px;
-        letter-spacing: 0.3px;
-        opacity: 0.8;
-      }
-      .title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 700;
-      }
-      .sub {
-        margin: 0;
-        opacity: 0.8;
-        font-size: 12.5px;
-      }
-      .actions {
-        display: inline-flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .btn-primary mat-icon,
-      .btn-outline mat-icon {
-        margin-right: 6px;
-      }
-      .soft-divider {
-        opacity: 0.45;
-      }
-      .filters {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(210px, 1fr));
-        gap: 10px;
-        align-items: end;
-      }
-      .ff {
-        width: 100%;
-      }
-      .dense .mat-mdc-form-field-infix {
-        padding-top: 6px !important;
-        padding-bottom: 6px !important;
-      }
-      .dense .mat-mdc-text-field-wrapper {
-        --mdc-filled-text-field-container-height: 36px;
-      }
-      .search .mat-mdc-form-field-infix {
-        padding-right: 0;
-      }
-      .table-wrap {
-        margin-top: 4px;
-        overflow: auto;
-        border-radius: 12px;
-        border: 1px solid #eaeaea;
-      }
-      table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 13px;
-      }
-      .modern-table th {
-        background: #f9fafb;
-        font-weight: 600;
-        color: #2f2f2f;
-      }
-      .modern-table th,
-      .modern-table td {
-        padding: 6px 10px;
-      }
-      .modern-table.compact .row {
-        height: 36px;
-      }
-      .modern-table .sticky {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-      }
-      .modern-table .row:nth-child(odd) td {
-        background: #ffffff;
-      }
-      .modern-table .row:nth-child(even) td {
-        background: #fbfbfd;
-      }
-      .center {
-        text-align: center;
-      }
-      .muted {
-        opacity: 0.7;
-      }
-      .student-cell {
+
+      /* Header */
+      .page-header {
         display: flex;
         align-items: center;
-        gap: 8px;
-        min-width: 200px;
+        gap: 16px;
+        margin-bottom: 24px;
       }
-      .avatar {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
+
+      .header-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, var(--primary), #5c6bc0);
+        color: white;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        background: #eef2ff;
+        box-shadow: 0 4px 6px rgba(63, 81, 181, 0.2);
+      }
+      .header-icon mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+
+      .header-text h1.page-title {
+        margin: 0;
+        font-size: 1.5rem;
         font-weight: 700;
-        font-size: 11px;
+        color: var(--text-dark);
+      }
+      .header-text p.page-subtitle {
+        margin: 4px 0 0;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
+      /* Card Styling */
+      .modern-card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        background: var(--bg-card);
+        padding: 0;
+        overflow: hidden;
+      }
+
+      /* Filters Grid */
+      .controls-section {
+        padding: 24px 24px 16px;
+      }
+
+      .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        align-items: center;
+      }
+
+      /* Modern Form Fields Overrides */
+      .modern-input {
+        width: 100%;
+      }
+      .input-icon {
+        color: var(--text-muted);
+        margin-right: 8px;
+      }
+      ::ng-deep .modern-input .mat-mdc-form-field-subscript-wrapper {
+        display: none;
+      }
+      
+      /* Info Bar */
+      .info-bar {
+        background: #fff8e1;
+        border-left: 4px solid #ffc107;
+        padding: 12px 16px;
+        margin: 0 24px 16px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.9rem;
+        color: #5d4037;
+      }
+      .info-icon { color: #ffa000; }
+      
+      .labor-input-wrapper {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 4px 8px;
+        margin-left: auto;
+      }
+      .native-input {
+        border: none;
+        outline: none;
+        width: 50px;
+        text-align: right;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--primary);
+      }
+      .suffix {
+        margin-left: 4px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      /* Table Styling */
+      .table-responsive {
+        overflow-x: auto;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .modern-table {
+        width: 100%;
+        box-shadow: none;
+      }
+
+      .modern-table th {
+        background-color: #f9fafb;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      
+      .header-highlight {
+        background-color: #eef2ff !important;
+        color: var(--primary) !important;
+      }
+
+      .modern-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+      }
+
+      .hover-row:hover {
+        background-color: #f8fafc;
+      }
+
+      /* Cell Specifics */
+      .center { text-align: center; }
+      .text-muted { color: var(--text-muted); }
+      .col-xs { width: 50px; }
+      .col-main { min-width: 200px; }
+      .col-input { width: 120px; }
+      
+      .cell-highlight {
+        background-color: #f8faff;
+      }
+
+      /* Student Avatar */
+      .student-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .gradient-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+        color: var(--primary);
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        font-size: 0.85rem;
+        border: 1px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       }
       .student-name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-weight: 500;
+        color: var(--text-dark);
       }
-      .cell-ff {
-        width: 110px;
+
+      /* Grid Input System */
+      .input-wrapper {
+        display: flex;
+        justify-content: center;
       }
-      .cell-ff .mat-mdc-form-field-infix {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-      }
-      .table-footer {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: center;
-        gap: 10px;
-        padding: 10px;
-        border-top: 1px solid #eee;
+      .grid-input {
+        width: 70px;
+        padding: 8px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        outline: none;
         background: #fff;
       }
-      .pager {
+      .grid-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+      }
+      .grid-input.filled {
+        font-weight: 600;
+        color: var(--text-dark);
+        border-color: #cbd5e1;
+      }
+      
+      /* Estilo ERROR para notas > 10 */
+      .grid-input.input-error {
+        border-color: var(--error-color) !important;
+        color: var(--error-color) !important;
+        background-color: var(--error-bg) !important;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+      }
+
+      /* Footer / Pagination */
+      .table-footer {
         display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .range {
-        font-size: 12px;
-        opacity: 0.8;
-      }
-      .pager-controls {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .size-ff {
-        width: 110px;
-      }
-      .footer-actions {
-        display: inline-flex;
-        gap: 8px;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        background: #fff;
+        gap: 16px;
       }
-      .empty {
-        padding: 28px 14px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-        gap: 6px;
-        color: #555;
-      }
-      .empty-icon {
-        font-size: 40px;
-      }
-      .empty-title {
-        font-weight: 700;
-      }
-      .mt-8 {
-        margin-top: 8px;
-      }
-
-      .asis-bar {
+      
+      .pagination-controls {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        background: #fafaff;
+        background: #f1f5f9;
+        border-radius: 24px;
+        padding: 2px;
       }
-      .asis-hint {
-        font-size: 12px;
-        opacity: 0.8;
+      .page-number {
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0 12px;
+        color: var(--text-dark);
       }
 
-      @media (max-width: 1200px) {
-        .filters {
-          grid-template-columns: repeat(3, minmax(210px, 1fr));
-        }
+      .save-btn {
+        padding: 0 24px;
+        height: 44px;
+        font-size: 0.95rem;
+        border-radius: 8px;
       }
-      @media (max-width: 900px) {
-        .filters {
-          grid-template-columns: 1fr 1fr;
-        }
-        .student-cell {
-          min-width: 160px;
-        }
+
+      /* Empty State */
+      .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--text-muted);
       }
+      .empty-illustration {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      .empty-state h3 {
+        margin: 0 0 8px;
+        color: var(--text-dark);
+        font-weight: 600;
+      }
+      .empty-state p {
+        margin: 0 0 24px;
+        font-size: 0.95rem;
+      }
+
+      /* Loader */
+      .loader {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+      }
+
       @media (max-width: 600px) {
-        .header {
-          grid-template-columns: 1fr;
-        }
-        .actions {
-          justify-content: flex-start;
-        }
-        .filters {
-          grid-template-columns: 1fr;
-        }
-        .cell-ff {
-          width: 100px;
-        }
-        .table-footer {
-          grid-template-columns: 1fr;
-          gap: 8px;
-        }
-        .pager {
-          justify-content: space-between;
-          width: 100%;
-        }
-        .asis-bar {
-          flex-direction: column;
-          align-items: flex-start;
-        }
+        .page-header { flex-direction: column; text-align: center; }
+        .table-footer { justify-content: center; }
+        .pagination-controls { order: 2; width: 100%; justify-content: space-between; }
+        .action-area { order: 1; width: 100%; }
+        .save-btn { width: 100%; }
+        .info-bar { flex-direction: column; text-align: center; }
+        .labor-input-wrapper { margin-left: 0; width: 100%; justify-content: center; }
       }
     `,
   ],
 })
 export class ProfesorNotasCursoComponent implements OnInit {
-  private sb = inject(MatSnackBar);
+  // MatSnackBar eliminado
   private auth = inject(AuthService);
   private cursoSrv = inject(CursoService);
   private estuSrv = inject(EstudianteService);
@@ -612,7 +676,13 @@ export class ProfesorNotasCursoComponent implements OnInit {
             this.onCursoChange();
           }
         },
-        error: () => this.sb.open('No se pudieron cargar los cursos', 'Cerrar', { duration: 3000 }),
+        error: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los cursos',
+          });
+        },
       });
     });
   }
@@ -708,7 +778,11 @@ export class ProfesorNotasCursoComponent implements OnInit {
       },
       error: () => {
         this.cargando.set(false);
-        this.sb.open('No se pudo cargar el detalle del curso', 'Cerrar', { duration: 3000 });
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar el detalle del curso',
+        });
       },
     });
   }
@@ -865,9 +939,19 @@ export class ProfesorNotasCursoComponent implements OnInit {
 
   onNotaChange(r: RowVM): void {
     if (r.promedioTrimestral == null) return;
+    
     const v = Number(r.promedioTrimestral);
-    if (isNaN(v)) r.promedioTrimestral = null as any;
-    else r.promedioTrimestral = Math.min(10, Math.max(0, v));
+    if (isNaN(v)) {
+      r.promedioTrimestral = null;
+      return;
+    }
+    
+    // Forzar 2 decimales
+    const conDosDecimales = Math.round(v * 100) / 100;
+    if (v !== conDosDecimales) {
+      r.promedioTrimestral = conDosDecimales;
+    }
+    // NOTA: Se mantiene el valor para validación posterior
   }
 
   onFaltasChange(r: RowVM): void {
@@ -889,24 +973,39 @@ export class ProfesorNotasCursoComponent implements OnInit {
         anioLectivoId: anioId,
         materiaId: materia,
       });
-      this.sb.open('IDs inválidos (curso / año lectivo / materia)', 'Cerrar', { duration: 3500 });
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de Datos',
+        text: 'IDs inválidos (curso / año lectivo / materia)',
+      });
       return;
     }
 
     if (!this.rows().length) {
-      this.sb.open('No hay estudiantes para guardar', 'Cerrar', { duration: 2500 });
+      Swal.fire({
+        icon: 'info',
+        title: 'Atención',
+        text: 'No hay estudiantes para guardar',
+      });
       return;
     }
 
-    // Validar notas
-    const invalNota = this.rows().some((r: RowVM) => {
+    // --- VALIDACIÓN DE RANGO 0 a 10 ---
+    const notasInvalidas = this.rows().filter((r: RowVM) => {
       const n = r.promedioTrimestral;
-      return n != null && (isNaN(Number(n)) || Number(n) < 0 || Number(n) > 10);
+      // Detecta si hay nota y si es menor a 0 o mayor a 10
+      return n != null && (Number(n) < 0 || Number(n) > 10);
     });
-    if (invalNota) {
-      this.sb.open('Cada nota debe estar entre 0 y 10.', 'Cerrar', { duration: 3000 });
+
+    if (notasInvalidas.length > 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Nota Incorrecta',
+        text: 'Ingrese una nota entre 0 a 10',
+      });
       return;
     }
+    // ----------------------------------
 
     // Validar días laborables
     if (
@@ -914,7 +1013,11 @@ export class ProfesorNotasCursoComponent implements OnInit {
       isNaN(Number(this.diasLaborables)) ||
       Number(this.diasLaborables) < 0
     ) {
-      this.sb.open('Ingrese los días laborables (>= 0).', 'Cerrar', { duration: 3000 });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Faltan datos',
+        text: 'Ingrese los días laborables (>= 0).',
+      });
       return;
     }
 
@@ -925,17 +1028,19 @@ export class ProfesorNotasCursoComponent implements OnInit {
         '[ProfesorNotasCurso] Filas ignoradas por ID no válido:',
         filasInvalidas.map((f) => f.estudianteNombre)
       );
-      this.sb.open(
-        `Se ignoraron ${filasInvalidas.length} estudiante(s) con ID inválido.`,
-        'Cerrar',
-        { duration: 4000 }
-      );
+      Swal.fire({
+        icon: 'warning',
+        title: 'Advertencia',
+        text: `Se ignoraron ${filasInvalidas.length} estudiante(s) con ID inválido.`,
+      });
     }
 
     const filasValidas = this.rows().filter((r) => this.validOid(r.estudianteId));
     if (!filasValidas.length) {
-      this.sb.open('Todos los estudiantes tienen ID inválido. Nada que guardar.', 'Cerrar', {
-        duration: 3500,
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Todos los estudiantes tienen ID inválido. Nada que guardar.',
       });
       return;
     }
@@ -987,34 +1092,45 @@ export class ProfesorNotasCursoComponent implements OnInit {
               this.asisSrv.guardarFaltasBulk(payloadAsis).subscribe({
                 next: (r: any) => {
                   this.guardando.set(false);
-                  this.sb.open(
-                    r?.message ?? 'Notas y asistencias guardadas correctamente',
-                    'Cerrar',
-                    { duration: 3000 }
-                  );
+                  
+                  // Mensaje de Éxito
+                  Swal.fire({
+                    icon: 'success',
+                    title: '¡Guardado!',
+                    text: r?.message ?? 'Notas y asistencias guardadas correctamente',
+                    timer: 2000,
+                    showConfirmButton: false
+                  });
+
                   this.cargarTabla();
                 },
                 error: (e: any) => {
                   this.guardando.set(false);
-                  this.sb.open(e?.error?.message ?? 'Error al guardar asistencias.', 'Cerrar', {
-                    duration: 3500,
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: e?.error?.message ?? 'Error al guardar asistencias.',
                   });
                 },
               });
             },
             error: (e: any) => {
               this.guardando.set(false);
-              this.sb.open(
-                e?.error?.message ?? 'No se pudieron guardar los días laborables.',
-                'Cerrar',
-                { duration: 3500 }
-              );
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: e?.error?.message ?? 'No se pudieron guardar los días laborables.',
+              });
             },
           });
       },
       error: (e) => {
         this.guardando.set(false);
-        this.sb.open(e?.error?.message ?? 'Error al guardar notas.', 'Cerrar', { duration: 3500 });
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: e?.error?.message ?? 'Error al guardar notas.',
+        });
       },
     });
   }

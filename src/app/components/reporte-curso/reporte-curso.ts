@@ -1,4 +1,3 @@
-// src/app/components/reporte-curso/reporte-curso.ts
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { firstValueFrom } from 'rxjs';
 
@@ -66,27 +66,24 @@ interface MateriaCurso {
     MatSnackBarModule,
     MatIconModule,
     MatProgressBarModule,
+    MatTooltipModule,
   ],
   template: `
-    <div class="wrap">
-      <mat-card class="card">
-        <div class="header">
-          <h2>📘 Reportes de Curso (Trimestrales / Final)</h2>
-          <div class="actions">
-            <button
-              mat-flat-button
-              color="primary"
-              (click)="imprimirTodos()"
-              [disabled]="!estudiantes().length || cargando()"
-            >
-              <mat-icon>print</mat-icon> Imprimir todos
-            </button>
-          </div>
+    <div class="page-container fade-in">
+      
+      <div class="page-header">
+        <div>
+          <h1 class="main-title">Reportes Académicos</h1>
+          <p class="subtitle">Genera boletines trimestrales o finales en formato PDF.</p>
         </div>
+      </div>
 
-        <div class="filters">
-          <mat-form-field appearance="outline">
-            <mat-label>Curso</mat-label>
+      <div class="control-panel mat-elevation-z0">
+        <div class="filters-grid">
+          
+          <mat-form-field appearance="outline" class="custom-field">
+            <mat-label>Seleccionar Curso</mat-label>
+            <mat-icon matPrefix class="field-icon">school</mat-icon>
             <mat-select [(ngModel)]="cursoId" (selectionChange)="onCursoChange()">
               <mat-option *ngFor="let c of cursos()" [value]="asId(c._id)">
                 {{ c.nombre }}
@@ -94,84 +91,227 @@ interface MateriaCurso {
             </mat-select>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
+          <mat-form-field appearance="outline" class="custom-field">
             <mat-label>Tipo de Reporte</mat-label>
+            <mat-icon matPrefix class="field-icon">description</mat-icon>
             <mat-select [(ngModel)]="tipoReporte">
               <mat-option value="T1">Trimestre I</mat-option>
               <mat-option value="T2">Trimestre II</mat-option>
               <mat-option value="T3">Trimestre III</mat-option>
-              <mat-option value="FINAL">Final</mat-option>
+              <mat-option value="FINAL">Reporte Final</mat-option>
             </mat-select>
           </mat-form-field>
+
+          <button
+            mat-flat-button
+            color="primary"
+            class="action-btn"
+            (click)="imprimirTodos()"
+            [disabled]="!estudiantes().length || cargando()"
+            matTooltip="Descargar todos los reportes en PDF"
+          >
+            <mat-icon>print</mat-icon>
+            Imprimir Lote
+          </button>
         </div>
+      </div>
 
-        <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
+      <mat-progress-bar *ngIf="cargando()" mode="indeterminate" class="custom-loader"></mat-progress-bar>
 
-        <table mat-table [dataSource]="estudiantes()" class="mat-elevation-z2 full-table">
+      <div class="data-container mat-elevation-z2" *ngIf="estudiantes().length; else emptyState">
+        <table mat-table [dataSource]="estudiantes()" class="friendly-table">
+          
           <ng-container matColumnDef="nombre">
             <th mat-header-cell *matHeaderCellDef>Estudiante</th>
-            <td mat-cell *matCellDef="let e">{{ e.nombre }}</td>
+            <td mat-cell *matCellDef="let e">
+              <div class="student-row">
+                <div class="avatar-circle">
+                  {{ e.nombre?.charAt(0) ?? 'E' }}
+                </div>
+                <div class="student-info">
+                  <span class="student-name">{{ e.nombre }}</span>
+                  <span class="student-id">CI: {{ e.cedula }}</span>
+                </div>
+              </div>
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="cedula">
-            <th mat-header-cell *matHeaderCellDef>Cédula</th>
-            <td mat-cell *matCellDef="let e">{{ e.cedula }}</td>
+            <th mat-header-cell *matHeaderCellDef class="hide-mobile">Identificación</th>
+            <td mat-cell *matCellDef="let e" class="hide-mobile text-muted">
+              {{ e.cedula }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="acciones">
-            <th mat-header-cell *matHeaderCellDef>Acciones</th>
-            <td mat-cell *matCellDef="let e">
+            <th mat-header-cell *matHeaderCellDef class="center-header">Acciones</th>
+            <td mat-cell *matCellDef="let e" class="center-cell">
               <button
                 mat-icon-button
-                color="accent"
+                class="icon-btn-accent"
                 (click)="imprimirIndividual(e)"
                 [disabled]="cargando()"
+                matTooltip="Ver PDF Individual"
               >
-                <mat-icon>print</mat-icon>
+                <mat-icon>picture_as_pdf</mat-icon>
               </button>
             </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="cols"></tr>
-          <tr mat-row *matRowDef="let row; columns: cols"></tr>
+          <tr mat-row *matRowDef="let row; columns: cols" class="hover-row"></tr>
         </table>
+      </div>
 
-        <p *ngIf="!estudiantes().length && !cargando()">
-          Seleccione un curso para ver sus estudiantes.
-        </p>
-      </mat-card>
+      <ng-template #emptyState>
+        <div class="empty-state" *ngIf="!cargando()">
+          <div class="illustration">📄</div>
+          <h3>Lista de estudiantes vacía</h3>
+          <p>Selecciona un <b>Curso</b> para cargar los estudiantes y generar reportes.</p>
+        </div>
+      </ng-template>
+
     </div>
   `,
   styles: [
     `
-      .wrap {
-        padding: 20px;
-        max-width: 1100px;
-        margin: auto;
+      /* Animaciones */
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      .card {
-        padding: 16px;
-        border-radius: 12px;
-        display: grid;
-        gap: 14px;
+      .fade-in { animation: fadeIn 0.4s ease-out; }
+
+      :host {
+        --primary: #3f51b5;
+        --text-main: #1f2937;
+        --text-secondary: #6b7280;
+        --bg-neutral: #f3f4f6;
+        --radius: 16px;
       }
-      .header {
+
+      .page-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      /* Header */
+      .page-header {
+        margin-bottom: 24px;
+      }
+      .main-title {
+        font-size: 26px;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-main);
+        letter-spacing: -0.5px;
+      }
+      .subtitle {
+        margin: 4px 0 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+      }
+
+      /* Panel de Control */
+      .control-panel {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 24px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 16px;
+      }
+
+      .filters-grid {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 16px;
         align-items: center;
       }
-      .actions {
-        display: inline-flex;
-        gap: 8px;
+
+      .custom-field { width: 100%; }
+      .field-icon { color: var(--text-secondary); margin-right: 8px; }
+      ::ng-deep .custom-field .mat-mdc-form-field-subscript-wrapper { display: none; }
+
+      .action-btn {
+        height: 56px;
+        border-radius: 12px;
+        padding: 0 24px;
+        font-weight: 600;
       }
-      .filters {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: end;
+
+      /* Loader */
+      .custom-loader { height: 4px; border-radius: 4px; margin-bottom: 16px; }
+
+      /* Tabla */
+      .data-container {
+        background: #fff;
+        border-radius: var(--radius);
+        overflow: hidden;
+        border: 1px solid #e5e7eb;
       }
-      .full-table {
-        width: 100%;
+      .friendly-table { width: 100%; }
+      .friendly-table th {
+        background: #f9fafb;
+        color: var(--text-secondary);
+        font-weight: 600;
+        font-size: 13px;
+        padding: 16px;
+        border-bottom: 1px solid #e5e7eb;
+        text-transform: uppercase;
+      }
+      .friendly-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        color: var(--text-main);
+        font-size: 14px;
+        vertical-align: middle;
+      }
+      .hover-row:hover { background-color: #f9fafb; }
+      .center-header, .center-cell { text-align: center; }
+      .text-muted { color: var(--text-secondary); }
+
+      /* Estudiante Avatar */
+      .student-row { display: flex; align-items: center; gap: 12px; }
+      .avatar-circle {
+        width: 38px; height: 38px;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 14px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .student-info { display: flex; flex-direction: column; }
+      .student-name { font-weight: 500; color: var(--text-main); }
+      .student-id { font-size: 12px; color: var(--text-secondary); }
+
+      /* Botones Icono */
+      .icon-btn-accent {
+        color: #6366f1;
+        background: #eef2ff;
+        border-radius: 8px;
+        transition: all 0.2s;
+      }
+      .icon-btn-accent:hover {
+        background: #6366f1;
+        color: white;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center; padding: 60px 20px;
+        background: #fff; border-radius: var(--radius);
+        border: 2px dashed #e5e7eb; color: var(--text-secondary);
+      }
+      .illustration { font-size: 48px; margin-bottom: 16px; opacity: 0.8; }
+      .empty-state h3 { margin: 0 0 8px; color: var(--text-main); font-weight: 700; }
+
+      @media (max-width: 768px) {
+        .filters-grid { grid-template-columns: 1fr; }
+        .action-btn { width: 100%; }
+        .hide-mobile { display: none; }
       }
     `,
   ],

@@ -11,6 +11,10 @@ import {
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 
+// Importación de SweetAlert2
+import Swal from 'sweetalert2';
+
+// Material Imports
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
@@ -21,7 +25,9 @@ import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dial
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
+// Componente del formulario (Asegúrate de que la ruta sea correcta)
 import {
   CursoFormularioComponent,
   MateriaCatalogoItem,
@@ -51,10 +57,10 @@ import { MateriaService } from '../../services/materia.service';
     MatProgressBarModule,
     MatListModule,
     MatTooltipModule,
+    MatProgressSpinnerModule
   ],
   template: `
     <div class="wrap">
-      <!-- Header -->
       <div class="header">
         <div class="titles">
           <h1>📘 Gestión de Cursos</h1>
@@ -70,22 +76,20 @@ import { MateriaService } from '../../services/materia.service';
         </div>
       </div>
 
-      <!-- Tarjeta de listado -->
       <mat-card class="card">
         <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>
 
         <div class="list" *ngIf="cursos().length; else vacio">
           <mat-card class="item" *ngFor="let c of cursos()">
             <div class="item-head">
-              <!-- Nombre clickable para abrir detalles -->
               <button class="item-title link" (click)="verDetalles(c)">{{ c.nombre }}</button>
               <mat-chip-set>
-                <mat-chip appearance="outlined" color="primary"
-                  >Año: {{ c.anioLectivo?.nombre ?? c.anioLectivo }}</mat-chip
-                >
-                <mat-chip appearance="outlined"
-                  >Tutor: {{ c.profesorTutor?.nombre ?? c.profesorTutor }}</mat-chip
-                >
+                <mat-chip appearance="outlined" color="primary">
+                  Año: {{ c.anioLectivo?.nombre ?? c.anioLectivo }}
+                </mat-chip>
+                <mat-chip appearance="outlined">
+                  Tutor: {{ c.profesorTutor?.nombre ?? c.profesorTutor }}
+                </mat-chip>
                 <mat-chip appearance="outlined">
                   Nivel: {{ c.nivel }}
                 </mat-chip>
@@ -118,317 +122,392 @@ import { MateriaService } from '../../services/materia.service';
         </ng-template>
       </mat-card>
 
-      <!-- DIALOG: DETALLES DEL CURSO -->
       <ng-template #detalleDlg>
-        <div class="dlg-header">
-          <div>
-            <div class="dlg-title">Detalles del curso</div>
-            <div class="dlg-subtitle" *ngIf="cursoDetalle()">
-              Revise estudiantes y materias. Puede quitar los que no correspondan.
+        <div class="modern-modal">
+          <div class="modal-header">
+            <div class="header-content">
+              <h2 class="title">{{ cursoDetalle()?.nombre }}</h2>
+              <span class="subtitle-badge">Detalle Académico</span>
             </div>
-          </div>
-          <button mat-icon-button (click)="cerrarDialogo()">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-        <mat-divider></mat-divider>
-
-        <div class="det-wrap" *ngIf="cursoDetalle(); else cargandoDetalle">
-          <div class="det-top">
-            <div class="det-name">{{ cursoDetalle().nombre }}</div>
-            <div class="det-meta">
-              <mat-chip-set>
-                <mat-chip appearance="outlined" color="primary"
-                  >Año:
-                  {{ cursoDetalle().anioLectivo?.nombre ?? cursoDetalle().anioLectivo }}</mat-chip
-                >
-                <mat-chip appearance="outlined"
-                  >Tutor:
-                  {{
-                    cursoDetalle().profesorTutor?.nombre ?? cursoDetalle().profesorTutor
-                  }}</mat-chip
-                >
-                <mat-chip appearance="outlined">
-                  Nivel: {{ cursoDetalle().nivel }}
-                </mat-chip>
-                <mat-chip appearance="outlined"
-                  >{{ cursoDetalle().materias?.length || 0 }} materia(s)</mat-chip
-                >
-                <mat-chip appearance="outlined"
-                  >{{ cursoDetalle().estudiantes?.length || 0 }} estudiante(s)</mat-chip
-                >
-              </mat-chip-set>
-            </div>
+            <button mat-icon-button class="close-btn" (click)="cerrarDialogo()">
+              <mat-icon>close</mat-icon>
+            </button>
           </div>
 
-          <div class="det-sections">
-            <!-- MATERIAS -->
-            <mat-card class="det-card">
-              <div class="sec-title">
-                <mat-icon>menu_book</mat-icon>
-                <span>Materias y profesores</span>
+          <div class="modal-body" *ngIf="cursoDetalle(); else cargandoDetalle">
+            
+            <div class="stats-grid">
+              <div class="stat-card blue">
+                <div class="icon-bg"><mat-icon>calendar_today</mat-icon></div>
+                <div class="stat-info">
+                  <label>Año Lectivo</label>
+                  <strong>{{ cursoDetalle().anioLectivo?.nombre ?? cursoDetalle().anioLectivo }}</strong>
+                </div>
               </div>
 
-              <mat-list dense *ngIf="cursoDetalle().materias?.length; else sinMaterias">
-                <mat-list-item *ngFor="let m of cursoDetalle().materias">
-                  <mat-icon matListItemIcon>book</mat-icon>
+              <div class="stat-card purple">
+                <div class="icon-bg"><mat-icon>school</mat-icon></div>
+                <div class="stat-info">
+                  <label>Tutor</label>
+                  <strong>{{ cursoDetalle().profesorTutor?.nombre ?? cursoDetalle().profesorTutor }}</strong>
+                </div>
+              </div>
 
-                  <div matListItemTitle>{{ m.materia?.nombre ?? m.materia }}</div>
-                  <div matListItemLine class="muted">
-                    Profesor: {{ m.profesor?.nombre ?? m.profesor }}
+              <div class="stat-card orange">
+                <div class="icon-bg"><mat-icon>bar_chart</mat-icon></div>
+                <div class="stat-info">
+                  <label>Nivel</label>
+                  <strong>{{ cursoDetalle().nivel }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="content-grid">
+              
+              <div class="section-col">
+                <div class="section-header">
+                  <div class="sec-icon"><mat-icon>menu_book</mat-icon></div>
+                  <h3>Materias Asignadas</h3>
+                  <span class="badge-count">{{ cursoDetalle().materias?.length || 0 }}</span>
+                </div>
+                
+                <div class="custom-list">
+                  <div class="list-item" *ngFor="let m of cursoDetalle().materias">
+                    <div class="item-avatar book">
+                      <mat-icon>import_contacts</mat-icon>
+                    </div>
+                    <div class="item-info">
+                      <div class="main-text">{{ m.materia?.nombre ?? m.materia }}</div>
+                      <div class="sub-text">
+                        <mat-icon class="tiny-icon">person</mat-icon> 
+                        {{ m.profesor?.nombre ?? m.profesor }}
+                      </div>
+                    </div>
+                    <button mat-icon-button color="warn" matTooltip="Quitar materia" (click)="quitarMateria(m)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
                   </div>
 
-                  <button
-                    mat-icon-button
-                    matTooltip="Quitar esta materia del curso"
-                    color="warn"
-                    matListItemMeta
-                    (click)="quitarMateria(m)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </mat-list-item>
-              </mat-list>
-
-              <ng-template #sinMaterias>
-                <div class="muted p2">No hay materias asignadas.</div>
-              </ng-template>
-
-              <div class="hint muted">
-                Para agregar materias nuevas, use el botón <strong>Editar</strong> en la lista principal.
-              </div>
-            </mat-card>
-
-            <!-- ESTUDIANTES -->
-            <mat-card class="det-card">
-              <div class="sec-title">
-                <mat-icon>group</mat-icon>
-                <span>Estudiantes</span>
+                  <div class="empty-state" *ngIf="!cursoDetalle().materias?.length">
+                    <mat-icon>library_books</mat-icon>
+                    <p>Sin materias asignadas</p>
+                  </div>
+                </div>
               </div>
 
-              <mat-list dense *ngIf="cursoDetalle().estudiantes?.length; else sinEstudiantes">
-                <mat-list-item *ngFor="let e of cursoDetalle().estudiantes">
-                  <mat-icon matListItemIcon>person</mat-icon>
+              <div class="section-col">
+                <div class="section-header">
+                  <div class="sec-icon student"><mat-icon>groups</mat-icon></div>
+                  <h3>Estudiantes</h3>
+                  <span class="badge-count">{{ cursoDetalle().estudiantes?.length || 0 }}</span>
+                </div>
 
-                  <div matListItemTitle>
-                    {{ e?.nombre ?? e }}
-                    <span *ngIf="e?.cedula"> - {{ e.cedula }}</span>
+                <div class="custom-list">
+                  <div class="list-item" *ngFor="let e of cursoDetalle().estudiantes">
+                    <div class="item-avatar person">
+                      {{ (e?.nombre?.[0] || 'E') | uppercase }}
+                    </div>
+                    <div class="item-info">
+                      <div class="main-text">{{ e?.nombre ?? e }}</div>
+                      <div class="sub-text" *ngIf="e?.cedula">
+                        <mat-icon class="tiny-icon">fingerprint</mat-icon> {{ e.cedula }}
+                      </div>
+                    </div>
+                    <button mat-icon-button color="warn" matTooltip="Quitar estudiante" (click)="quitarEstudiante(e)">
+                      <mat-icon>person_remove</mat-icon>
+                    </button>
                   </div>
 
-                  <button
-                    mat-icon-button
-                    matTooltip="Quitar este estudiante del curso"
-                    color="warn"
-                    matListItemMeta
-                    (click)="quitarEstudiante(e)"
-                  >
-                    <mat-icon>delete</mat-icon>
-                  </button>
-                </mat-list-item>
-              </mat-list>
-
-              <ng-template #sinEstudiantes>
-                <div class="muted p2">No hay estudiantes registrados en este curso.</div>
-              </ng-template>
-
-              <div class="hint muted">
-                Para matricular nuevos estudiantes en este curso, use el botón
-                <strong>Editar</strong> en la lista principal.
+                  <div class="empty-state" *ngIf="!cursoDetalle().estudiantes?.length">
+                    <mat-icon>person_off</mat-icon>
+                    <p>Sin estudiantes matriculados</p>
+                  </div>
+                </div>
               </div>
-            </mat-card>
-          </div>
-        </div>
 
-        <ng-template #cargandoDetalle>
-          <div class="loading-det">
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <div class="muted">Cargando detalles…</div>
+            </div> <div class="footer-hint">
+              <mat-icon>info</mat-icon>
+              <span>Para agregar nuevos registros, utiliza el botón "Editar" en el panel principal.</span>
+            </div>
+
           </div>
-        </ng-template>
+
+          <ng-template #cargandoDetalle>
+            <div class="loading-wrap">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p>Cargando información del curso...</p>
+            </div>
+          </ng-template>
+        </div>
       </ng-template>
     </div>
   `,
   styles: [
     `
-      .wrap {
-        padding: 24px;
-        max-width: 1100px;
-        margin: 0 auto;
-        display: grid;
-        gap: 16px;
-      }
-      .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .titles h1 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 700;
-      }
-      .subtitle {
-        margin: 2px 0 0;
-        opacity: 0.7;
-      }
-      .actions button mat-icon {
-        margin-right: 6px;
-      }
+      /* === Estilos Principales del Listado === */
+      .wrap { padding: 24px; max-width: 1100px; margin: 0 auto; display: grid; gap: 16px; }
+      .header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+      .titles h1 { margin: 0; font-size: 24px; font-weight: 700; }
+      .subtitle { margin: 2px 0 0; opacity: 0.7; }
+      .actions button mat-icon { margin-right: 6px; }
 
-      .card {
-        padding: 0;
-        overflow: hidden;
-      }
-      .list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 12px;
-        padding: 16px;
-      }
-      .item {
-        padding: 14px;
-        border-radius: 16px;
-      }
-      .item-head {
-        display: grid;
-        gap: 8px;
-      }
-      .item-title {
-        font-weight: 700;
-        font-size: 16px;
-        text-align: left;
-      }
-      .link {
-        background: transparent;
-        border: 0;
-        color: #1a73e8;
-        cursor: pointer;
-        padding: 0;
-        text-align: left;
-      }
-      .link:hover {
-        text-decoration: underline;
-      }
-      .item-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-      }
+      .card { padding: 0; overflow: hidden; }
+      .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; padding: 16px; }
+      .item { padding: 14px; border-radius: 16px; }
+      .item-head { display: grid; gap: 8px; }
+      .item-title { font-weight: 700; font-size: 16px; text-align: left; }
+      .link { background: transparent; border: 0; color: #1a73e8; cursor: pointer; padding: 0; text-align: left; }
+      .link:hover { text-decoration: underline; }
+      .item-actions { display: flex; gap: 8px; margin-top: 8px; }
 
-      .empty {
-        padding: 32px;
-        text-align: center;
-        display: grid;
-        gap: 10px;
-      }
-      .empty .emoji {
-        font-size: 40px;
-      }
-      .empty .msg {
-        opacity: 0.7;
-      }
+      .empty { padding: 32px; text-align: center; display: grid; gap: 10px; }
+      .empty .emoji { font-size: 40px; }
+      .empty .msg { opacity: 0.7; }
 
+      /* Ajuste global para el borde del Dialog de Material */
       :host ::ng-deep .mat-mdc-dialog-container .mdc-dialog__container {
         border-radius: 18px;
+        overflow: hidden;
       }
 
-      .dlg-header {
+      /* === ESTILOS MODERNOS DEL DIÁLOGO === */
+      
+      .modern-modal {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        max-height: 85vh;
+        background: #fff;
+        font-family: 'Roboto', sans-serif;
+        color: #374151;
+      }
+
+      /* Header Sticky */
+      .modal-header {
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        color: #1f2937;
+        line-height: 1.2;
+      }
+
+      .subtitle-badge {
+        font-size: 12px;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+      }
+
+      .close-btn { color: #9ca3af; }
+
+      /* Cuerpo del modal scrolleable */
+      .modal-body {
+        padding: 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      /* GRID DE ESTADÍSTICAS (Stats) */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+      }
+
+      .stat-card {
+        background: #f9fafb;
+        border-radius: 16px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border: 1px solid #f3f4f6;
+        transition: transform 0.2s;
+      }
+      
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      }
+
+      .icon-bg {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+      }
+
+      .stat-card.blue .icon-bg { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+      .stat-card.purple .icon-bg { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+      .stat-card.orange .icon-bg { background: linear-gradient(135deg, #f97316, #ea580c); }
+
+      .stat-info { display: flex; flex-direction: column; }
+      .stat-info label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; }
+      .stat-info strong { font-size: 15px; color: #111827; }
+
+      /* CONTENT GRID (Columnas) */
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      @media (max-width: 768px) {
+        .content-grid { grid-template-columns: 1fr; }
+      }
+
+      .section-col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #f3f4f6;
+      }
+
+      .section-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: #374151; }
+      .sec-icon { color: #6b7280; display: flex; }
+      .sec-icon.student { color: #059669; }
+
+      .badge-count {
+        background: #f3f4f6;
+        color: #4b5563;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      /* CUSTOM LIST */
+      .custom-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .list-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 10px 6px 6px;
+        padding: 10px 12px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        transition: all 0.2s ease;
       }
-      .dlg-title {
-        font-weight: 700;
-        font-size: 18px;
+
+      .list-item:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
       }
-      .dlg-subtitle {
-        opacity: 0.7;
-        font-size: 13px;
-        margin-top: 2px;
-      }
-      .det-wrap {
-        padding: 10px 6px 16px;
-        display: grid;
-        gap: 12px;
-      }
-      .det-top {
-        display: grid;
-        gap: 6px;
-      }
-      .det-name {
-        font-size: 18px;
-        font-weight: 700;
-      }
-      .det-sections {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      .det-card {
-        padding: 12px;
-        border-radius: 14px;
-      }
-      .sec-title {
+
+      .item-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e0e7ff;
+        color: #4f46e5;
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        margin-bottom: 8px;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        margin-right: 12px;
+        flex-shrink: 0;
       }
-      .muted {
-        opacity: 0.7;
+
+      .item-avatar.book { background: #fee2e2; color: #dc2626; border-radius: 8px; }
+      .item-avatar.person { background: #d1fae5; color: #059669; }
+
+      .item-info { flex: 1; min-width: 0; }
+      .main-text { font-weight: 600; font-size: 14px; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .sub-text { font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+      .tiny-icon { font-size: 14px; width: 14px; height: 14px; }
+
+      /* EMPTY STATE */
+      .empty-state {
+        text-align: center;
+        padding: 32px 16px;
+        background: #f9fafb;
+        border-radius: 12px;
+        border: 1px dashed #d1d5db;
+        color: #9ca3af;
       }
-      .p2 {
-        padding: 6px 4px;
+      .empty-state mat-icon { font-size: 32px; width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.5; }
+      .empty-state p { margin: 0; font-size: 13px; }
+
+      /* FOOTER */
+      .footer-hint {
+        margin-top: 16px;
+        background: #eff6ff;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        align-items: start;
+        gap: 10px;
+        font-size: 13px;
+        color: #1e40af;
       }
-      .loading-det {
-        padding: 16px;
-        display: grid;
-        gap: 8px;
-      }
-      .hint {
-        margin-top: 8px;
-        font-size: 12px;
-      }
-      @media (max-width: 900px) {
-        .det-sections {
-          grid-template-columns: 1fr;
-        }
+      .footer-hint mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+      /* LOADER */
+      .loading-wrap {
+        height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        color: #6b7280;
       }
     `,
   ],
 })
 export class CursosComponent implements OnInit {
+  // Inyecciones
   private sb = inject(MatSnackBar);
   private cursoSvc = inject(CursoService);
   private dialog = inject(MatDialog);
-
   private anioSvc = inject(AnioLectivoService);
   private usuarioSvc = inject(UsuarioService);
   private estuSvc = inject(EstudianteService);
   private materiaSvc = inject(MateriaService);
 
-  private asId(val: any): string {
-    if (!val) return '';
-    if (typeof val === 'string') return val;
-    if (typeof val === 'object' && val._id) return String(val._id);
-    return '';
-  }
-
-  private mapIdArray(arr: any[]): string[] {
-    return Array.isArray(arr) ? arr.map((x) => this.asId(x)).filter(Boolean) : [];
-  }
-
+  // Signals
   cargando = signal<boolean>(false);
-
-  // Catálogos
+  
   aniosLectivo = signal<{ _id: string; nombre: string }[]>([]);
   profesores = signal<{ _id: string; nombre: string }[]>([]);
   estudiantes = signal<{ _id: string; nombre: string; cedula: string }[]>([]);
   materiasRaw = signal<any[]>([]);
 
+  // Computed
   materiasConProfesor = computed<MateriaCatalogoItem[]>(() =>
     (this.materiasRaw() ?? []).map((m: any) => ({
       _id: m._id,
@@ -444,19 +523,35 @@ export class CursosComponent implements OnInit {
   detalleRef?: MatDialogRef<any>;
   cursoDetalle = signal<any | null>(null);
 
+  // =====================
+  // Helper Methods
+  // =====================
+  private asId(val: any): string {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object' && val._id) return String(val._id);
+    return '';
+  }
+
+  private mapIdArray(arr: any[]): string[] {
+    return Array.isArray(arr) ? arr.map((x) => this.asId(x)).filter(Boolean) : [];
+  }
+
   ngOnInit() {
     this.cargarCatalogos();
     this.refrescar();
   }
 
+  // =====================
+  // Carga de Datos
+  // =====================
   private cargarCatalogos() {
     this.anioSvc.getAll().subscribe({
       next: (res: any) => this.aniosLectivo.set(res?.data ?? res ?? []),
       error: () =>
-        this.sb.open('No se pudieron cargar los años lectivos', 'Cerrar', { duration: 3000 }),
+        this.sb.open('Error al cargar años lectivos', 'Cerrar', { duration: 3000 }),
     });
 
-    // Profesores
     (this.usuarioSvc as any).getProfesores?.().subscribe?.({
       next: (res: any) => {
         const list = res?.data ?? res ?? [];
@@ -467,10 +562,9 @@ export class CursosComponent implements OnInit {
         this.profesores.set(mapped);
       },
       error: () =>
-        this.sb.open('No se pudieron cargar los profesores', 'Cerrar', { duration: 3000 }),
+        this.sb.open('Error al cargar profesores', 'Cerrar', { duration: 3000 }),
     });
 
-    // Estudiantes (incluye cédula)
     this.estuSvc.getAll().subscribe({
       next: (res: any) =>
         this.estudiantes.set(
@@ -481,13 +575,12 @@ export class CursosComponent implements OnInit {
           }))
         ),
       error: () =>
-        this.sb.open('No se pudieron cargar los estudiantes', 'Cerrar', { duration: 3000 }),
+        this.sb.open('Error al cargar estudiantes', 'Cerrar', { duration: 3000 }),
     });
 
-    // Materias
     this.materiaSvc.getAll().subscribe({
       next: (res: any) => this.materiasRaw.set(res?.materias ?? res ?? []),
-      error: () => this.sb.open('No se pudieron cargar las materias', 'Cerrar', { duration: 3000 }),
+      error: () => this.sb.open('Error al cargar materias', 'Cerrar', { duration: 3000 }),
     });
   }
 
@@ -504,6 +597,10 @@ export class CursosComponent implements OnInit {
       },
     });
   }
+
+  // =====================
+  // Acciones (CRUD)
+  // =====================
 
   abrirCrear() {
     this.abrirDialogo(null);
@@ -528,7 +625,7 @@ export class CursosComponent implements OnInit {
     };
 
     if (!flat._id) {
-      this.sb.open('No se puede editar: curso sin ID válido.', 'Cerrar', { duration: 3500 });
+      Swal.fire('Error', 'El curso seleccionado no tiene un ID válido', 'error');
       return;
     }
 
@@ -545,12 +642,14 @@ export class CursosComponent implements OnInit {
       data: null,
     });
 
+    // Inyectar datos al componente hijo
     ref.componentInstance.aniosLectivo = this.aniosLectivo as any;
     ref.componentInstance.profesoresCatalogo = this.profesores as any;
     ref.componentInstance.estudiantesCatalogo = this.estudiantes as any;
     ref.componentInstance.materiasCatalogo = this.materiasConProfesor as any;
     ref.componentInstance.cursoExistente = cursoExistente;
 
+    // Manejar el submit
     ref.componentInstance.submitCurso.subscribe((payload: CursoPayload) => {
       const isEdit = !!cursoExistente?._id;
 
@@ -570,8 +669,11 @@ export class CursosComponent implements OnInit {
       this.cargando.set(true);
       req$.subscribe({
         next: () => {
-          this.sb.open(isEdit ? 'Curso actualizado' : 'Curso creado', 'Cerrar', {
-            duration: 2500,
+          Swal.fire({
+            title: isEdit ? 'Curso actualizado' : 'Curso creado',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
           });
           ref.close(true);
           this.refrescar();
@@ -580,7 +682,7 @@ export class CursosComponent implements OnInit {
           this.cargando.set(false);
           console.error('[Cursos] Error backend:', e);
           const msg = e?.error?.message || e?.error?.msg || 'Error al guardar';
-          this.sb.open(msg, 'Cerrar', { duration: 4000 });
+          Swal.fire('Error', msg, 'error');
         },
       });
     });
@@ -588,12 +690,43 @@ export class CursosComponent implements OnInit {
     ref.afterClosed().subscribe();
   }
 
+  eliminar(curso: any) {
+    Swal.fire({
+      title: '¿Eliminar curso?',
+      text: `Se eliminará permanentemente el curso "${curso.nombre}".`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.cargando.set(true);
+        this.cursoSvc.eliminar(curso._id).subscribe({
+          next: () => {
+            Swal.fire('Eliminado', 'El curso ha sido eliminado.', 'success');
+            this.refrescar();
+          },
+          error: (e) => {
+            this.cargando.set(false);
+            Swal.fire('Error', e?.error?.message ?? 'No se pudo eliminar', 'error');
+          },
+        });
+      }
+    });
+  }
+
+  // =====================
+  // Ver Detalles
+  // =====================
+
   verDetalles(curso: any) {
     this.cursoDetalle.set(null);
     this.detalleRef = this.dialog.open(this.detalleDlgTpl, {
       width: '820px',
       maxWidth: '95vw',
-      panelClass: 'soft-dialog',
+      panelClass: 'soft-dialog', // Clase opcional, puedes quitarla si no tienes CSS global
       autoFocus: false,
     });
 
@@ -613,112 +746,124 @@ export class CursosComponent implements OnInit {
     this.detalleRef?.close();
   }
 
-  eliminar(curso: any) {
-    if (!confirm(`Eliminar curso "${curso.nombre}"?`)) return;
-    this.cursoSvc.eliminar(curso._id).subscribe({
-      next: () => {
-        this.sb.open('Curso eliminado', 'Cerrar', { duration: 2500 });
-        this.refrescar();
-      },
-      error: (e) =>
-        this.sb.open(e?.error?.message ?? 'Error al eliminar', 'Cerrar', { duration: 3500 }),
-    });
-  }
+  // ==========================
+  // Acciones en Detalle
+  // ==========================
 
-  // ==========================
-  // Quitar estudiante del curso
-  // ==========================
   quitarEstudiante(est: any) {
     const curso = this.cursoDetalle();
     if (!curso?._id) return;
 
     const nombreEst = est?.nombre ?? est;
-    if (!confirm(`¿Quitar al estudiante "${nombreEst}" de este curso?`)) return;
 
-    const cursoId = this.asId(curso._id);
+    Swal.fire({
+      title: '¿Quitar estudiante?',
+      text: `¿Desea quitar a "${nombreEst}" de este curso?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, quitar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const cursoId = this.asId(curso._id);
+        const payload: Curso = {
+          _id: cursoId,
+          nombre: curso.nombre,
+          nivel: curso.nivel,
+          anioLectivo: this.asId(curso.anioLectivo),
+          profesorTutor: this.asId(curso.profesorTutor),
+          estudiantes: (curso.estudiantes ?? [])
+            .map((x: any) => this.asId(x))
+            .filter((id: string) => id && id !== this.asId(est)),
+          materias: (curso.materias ?? []).map((m: any) => ({
+            materia: this.asId(m.materia),
+            profesor: this.asId(m.profesor),
+          })),
+        };
 
-    // Construimos payload limpio para actualizar
-    const payload: Curso = {
-      _id: cursoId,
-      nombre: curso.nombre,
-      nivel: curso.nivel,
-      anioLectivo: this.asId(curso.anioLectivo),
-      profesorTutor: this.asId(curso.profesorTutor),
-      estudiantes: (curso.estudiantes ?? [])
-        .map((x: any) => this.asId(x))
-        .filter((id: string) => id && id !== this.asId(est)),
-      materias: (curso.materias ?? []).map((m: any) => ({
-        materia: this.asId(m.materia),
-        profesor: this.asId(m.profesor),
-      })),
-    };
-
-    this.cursoSvc.actualizar(cursoId, payload).subscribe({
-      next: () => {
-        // Actualizar estado local del detalle para que se vea el cambio
-        const nuevosEsts = (curso.estudiantes ?? []).filter(
-          (x: any) => this.asId(x) !== this.asId(est)
-        );
-        this.cursoDetalle.set({ ...curso, estudiantes: nuevosEsts });
-        this.sb.open('Estudiante quitado del curso', 'Cerrar', { duration: 2500 });
-        this.refrescar();
-      },
-      error: (e) => {
-        console.error('[Cursos] Error al quitar estudiante:', e);
-        this.sb.open(
-          e?.error?.message ?? 'No se pudo quitar el estudiante',
-          'Cerrar',
-          { duration: 3500 }
-        );
-      },
+        this.cursoSvc.actualizar(cursoId, payload).subscribe({
+          next: () => {
+            const nuevosEsts = (curso.estudiantes ?? []).filter(
+              (x: any) => this.asId(x) !== this.asId(est)
+            );
+            this.cursoDetalle.set({ ...curso, estudiantes: nuevosEsts });
+            
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Estudiante retirado',
+              showConfirmButton: false,
+              timer: 2000
+            });
+            this.refrescar(); // Actualizar lista principal
+          },
+          error: (e) => {
+            console.error('[Cursos] Error al quitar estudiante:', e);
+            Swal.fire('Error', e?.error?.message ?? 'No se pudo quitar el estudiante', 'error');
+          },
+        });
+      }
     });
   }
 
-  // ==========================
-  // Quitar materia del curso
-  // ==========================
   quitarMateria(materiaRow: any) {
     const curso = this.cursoDetalle();
     if (!curso?._id) return;
 
     const nombreMat = materiaRow?.materia?.nombre ?? materiaRow?.materia ?? 'esta materia';
-    if (!confirm(`¿Quitar ${nombreMat} de este curso?`)) return;
 
-    const cursoId = this.asId(curso._id);
-    const materiaIdAEliminar = this.asId(materiaRow.materia);
+    Swal.fire({
+      title: '¿Quitar materia?',
+      text: `¿Desea quitar la materia "${nombreMat}" de este curso?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, quitar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const cursoId = this.asId(curso._id);
+        const materiaIdAEliminar = this.asId(materiaRow.materia);
 
-    const payload: Curso = {
-      _id: cursoId,
-      nombre: curso.nombre,
-      nivel: curso.nivel,
-      anioLectivo: this.asId(curso.anioLectivo),
-      profesorTutor: this.asId(curso.profesorTutor),
-      estudiantes: (curso.estudiantes ?? []).map((x: any) => this.asId(x)),
-      materias: (curso.materias ?? [])
-        .map((m: any) => ({
-          materia: this.asId(m.materia),
-          profesor: this.asId(m.profesor),
-        }))
-        .filter((m: any) => m.materia !== materiaIdAEliminar),
-    };
+        const payload: Curso = {
+          _id: cursoId,
+          nombre: curso.nombre,
+          nivel: curso.nivel,
+          anioLectivo: this.asId(curso.anioLectivo),
+          profesorTutor: this.asId(curso.profesorTutor),
+          estudiantes: (curso.estudiantes ?? [])
+            .map((x: any) => this.asId(x)),
+          materias: (curso.materias ?? [])
+            .map((m: any) => ({
+              materia: this.asId(m.materia),
+              profesor: this.asId(m.profesor),
+            }))
+            .filter((m: any) => m.materia !== materiaIdAEliminar),
+        };
 
-    this.cursoSvc.actualizar(cursoId, payload).subscribe({
-      next: () => {
-        const nuevasMats = (curso.materias ?? []).filter(
-          (m: any) => this.asId(m.materia) !== materiaIdAEliminar
-        );
-        this.cursoDetalle.set({ ...curso, materias: nuevasMats });
-        this.sb.open('Materia quitada del curso', 'Cerrar', { duration: 2500 });
-        this.refrescar();
-      },
-      error: (e) => {
-        console.error('[Cursos] Error al quitar materia:', e);
-        this.sb.open(
-          e?.error?.message ?? 'No se pudo quitar la materia',
-          'Cerrar',
-          { duration: 3500 }
-        );
-      },
+        this.cursoSvc.actualizar(cursoId, payload).subscribe({
+          next: () => {
+            const nuevasMats = (curso.materias ?? []).filter(
+              (m: any) => this.asId(m.materia) !== materiaIdAEliminar
+            );
+            this.cursoDetalle.set({ ...curso, materias: nuevasMats });
+            
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Materia retirada',
+              showConfirmButton: false,
+              timer: 2000
+            });
+            this.refrescar();
+          },
+          error: (e) => {
+            console.error('[Cursos] Error al quitar materia:', e);
+            Swal.fire('Error', e?.error?.message ?? 'No se pudo quitar la materia', 'error');
+          },
+        });
+      }
     });
   }
 }

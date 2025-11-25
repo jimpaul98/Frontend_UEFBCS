@@ -42,11 +42,7 @@ type ResumenItem = {
         <div>
           <h1 class="title">📊 Panel de Administración</h1>
           <p class="subtitle">Resumen general del sistema académico</p>
-        </div>
-        <button mat-stroked-button color="primary" routerLink="/cursos">
-          <mat-icon>open_in_new</mat-icon>
-          Gestionar cursos
-        </button>
+        </div>        
       </div>
 
       <mat-progress-bar *ngIf="cargando()" mode="indeterminate"></mat-progress-bar>

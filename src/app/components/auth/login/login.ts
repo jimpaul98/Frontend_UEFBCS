@@ -7,10 +7,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+// Eliminamos MatSnackBarModule ya que usaremos SweetAlert2
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
+import Swal from 'sweetalert2'; // Importamos SweetAlert2
 
 import { AuthService } from '../../../services/auth.service';
 
@@ -24,9 +25,16 @@ function deferChange(fn: () => void) {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatInputModule,
-    MatFormFieldModule, MatButtonModule, MatIconModule, RouterLink,
-    MatProgressSpinnerModule, MatSnackBarModule
+    CommonModule,
+    FormsModule,
+    MatCardModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatButtonModule,
+    MatIconModule,
+    RouterLink,
+    MatProgressSpinnerModule
+    // MatSnackBarModule eliminado de imports
   ],
   templateUrl: './login.html',
   styleUrls: ['./login.scss']
@@ -34,23 +42,34 @@ function deferChange(fn: () => void) {
 export class LoginComponent {
   credenciales = { correo: '', clave: '' };
   isLoading = false;
-esClaveVisible = false;
+  esClaveVisible = false;
+
   private authService = inject(AuthService);
-  private snackBar = inject(MatSnackBar);
+  // private snackBar = inject(MatSnackBar); // Ya no se necesita
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
-toggleClaveVisibilidad() {
+
+  toggleClaveVisibilidad() {
     this.esClaveVisible = !this.esClaveVisible;
-    this.cdr.markForCheck(); 
+    this.cdr.markForCheck();
   }
+
   iniciarSesion() {
     if (this.isLoading) return;
 
     const correo = (this.credenciales.correo || '').trim();
     const clave = this.credenciales.clave || '';
+
+    // Validación de campos vacíos
     if (!correo || !clave) {
-      this.snackBar.open('Ingresa tu correo y contraseña.', 'Cerrar', { duration: 3000, panelClass: ['error-snackbar'] });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos incompletos',
+        text: 'Por favor, ingresa tu correo y contraseña.',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
 
@@ -59,7 +78,10 @@ toggleClaveVisibilidad() {
 
     this.authService.login({ correo, clave })
       .pipe(finalize(() => {
-        deferChange(() => { this.isLoading = false; this.cdr.markForCheck(); });
+        deferChange(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        });
       }))
       .subscribe({
         next: () => {
@@ -79,13 +101,31 @@ toggleClaveVisibilidad() {
               this.router.navigateByUrl('/app');
             }
 
-            this.snackBar.open('¡Bienvenido! Sesión iniciada.', 'Cerrar', { duration: 3000, panelClass: ['success-snackbar'] });
+            // Alerta de Éxito (Tipo Toast para no bloquear visualmente)
+            const Toast = Swal.mixin({
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 3000,
+              timerProgressBar: true,
+              didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+              }
+            });
+
+            Toast.fire({
+              icon: 'success',
+              title: '¡Bienvenido! Sesión iniciada.'
+            });
+
             this.cdr.markForCheck();
           });
         },
         error: (err: HttpErrorResponse) => {
           deferChange(() => {
             let mensajeError = 'Error de conexión con el servidor. Intente más tarde.';
+            
             if (err.status === 0) {
               mensajeError = 'No se pudo contactar al servidor. Verifique que el backend esté activo.';
             } else if (err.status === 401 || err.status === 400) {
@@ -93,7 +133,16 @@ toggleClaveVisibilidad() {
             } else if (err.error?.message) {
               mensajeError = err.error.message;
             }
-            this.snackBar.open(mensajeError, 'Cerrar', { duration: 6000, panelClass: ['error-snackbar'] });
+
+            // Alerta de Error
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de acceso',
+              text: mensajeError,
+              confirmButtonColor: '#d33',
+              confirmButtonText: 'Cerrar'
+            });
+
             this.cdr.markForCheck();
           });
         }
