@@ -295,6 +295,105 @@ import { UsuarioFormularioComponent } from '../usuario-formulario/usuario-formul
 
     /* Paginador */
     mat-paginator { border-top: 1px solid #e5e7eb; }
+    
+    /* === RESPONSIVE STYLES === */
+    @media (max-width: 768px) {
+      .wrap {
+        margin: 16px auto;
+        padding: 0 8px;
+      }
+      
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      
+      .title {
+        font-size: 24px;
+      }
+      
+      .subtitle {
+        font-size: 12px;
+      }
+      
+      .actions {
+        width: 100%;
+        flex-wrap: wrap;
+      }
+      
+      .search {
+        width: 100%;
+        min-width: unset;
+      }
+      
+      .upload-wrap {
+        width: 100%;
+      }
+      
+      .upload-wrap button {
+        width: 100%;
+      }
+      
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      
+      .modern-table {
+        min-width: 700px;
+      }
+    }
+    
+    @media (max-width: 599px) {
+      .wrap {
+        margin: 12px auto;
+        padding: 0 4px;
+      }
+      
+      .title {
+        font-size: 20px;
+      }
+      
+      .subtitle {
+        font-size: 11px;
+      }
+      
+      .actions {
+        gap: 8px;
+      }
+      
+      .btn-primary,
+      .btn-stroked {
+        height: 36px;
+        font-size: 13px;
+      }
+      
+      .search-input {
+        height: 36px;
+        font-size: 14px;
+      }
+      
+      .toolbar {
+        padding: 8px;
+      }
+      
+      .modern-table th.mat-header-cell,
+      .modern-table td.mat-cell {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+      
+      .empty-state {
+        grid-template-columns: 1fr;
+        text-align: center;
+        padding: 16px 12px;
+      }
+      
+      .empty-state mat-icon {
+        margin: 0 auto;
+      }
+    }
   `],
 })
 export class Usuarios implements AfterViewInit {

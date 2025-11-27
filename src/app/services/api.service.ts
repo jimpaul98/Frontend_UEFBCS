@@ -7,7 +7,7 @@ import { environment } from '../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private readonly baseUrl = environment.apiUrl; // ej: '/api' o 'http://localhost:5000/api'
+  private readonly baseUrl = environment.apiUrl; 
 
   /** 🔧 Helper para construir HttpParams desde un objeto plano */
   private buildParams(params?: Record<string, any>) {

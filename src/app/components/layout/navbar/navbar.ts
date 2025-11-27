@@ -17,18 +17,56 @@ import { AuthService } from '../../../services/auth.service';
       <button mat-icon-button (click)="toggleSidebar.emit()" matTooltip="Mostrar/Ocultar Menú">
         <mat-icon>menu</mat-icon>
       </button>
-      <span>Sistema de Gestión Escolar</span>
+      <span class="title">Sistema de Gestión Escolar</span>
       
       <span class="spacer"></span>
       
-      <button mat-button color="accent" (click)="logout()" matTooltip="Cerrar Sesión">
+      <button mat-button color="accent" (click)="logout()" matTooltip="Cerrar Sesión" class="logout-btn">
         <mat-icon>exit_to_app</mat-icon>
-        Cerrar Sesión
+        <span class="logout-text">Cerrar Sesión</span>
       </button>
     </mat-toolbar>
   `,
   styles: [`
-    .spacer { flex: 1 1 auto; }
+    .spacer { 
+      flex: 1 1 auto; 
+    }
+    
+    .title {
+      font-size: 18px;
+      font-weight: 500;
+    }
+    
+    .logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .title {
+        font-size: 16px;
+      }
+    }
+    
+    @media (max-width: 599px) {
+      .title {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .logout-text {
+        display: none;
+      }
+      
+      .logout-btn {
+        min-width: 40px;
+        padding: 0 8px;
+      }
+    }
   `]
 })
 export class NavbarComponent {

@@ -36,7 +36,7 @@ export interface CurrentUser {
 export class AuthService {
   private apiUrl = environment.apiUrl;
   private http = inject(HttpClient);
-  private router = inject(Router); // 👇 SSR-safe: detecta plataforma
+  private router = inject(Router); 
 
   private platformId = inject(PLATFORM_ID);
   private isBrowser = isPlatformBrowser(this.platformId); // Estado de autenticación (solo booleano)

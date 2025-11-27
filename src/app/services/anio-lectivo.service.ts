@@ -7,10 +7,10 @@ import { ApiService } from './api.service';
 export interface AnioLectivo {
   _id: string;
   nombre: string;
-  fechaInicio: string; // ISO
-  fechaFin: string;    // ISO
+  fechaInicio: string; 
+  fechaFin: string;   
   actual: boolean;
-  activo?: boolean;    // si tu schema lo tiene, vendrá aquí
+  activo?: boolean;    
 }
 
 // ⬇ NUEVO: interfaz para la nota final del estudiante
@@ -41,7 +41,7 @@ type UpdatePayload = Partial<CreatePayload>;
 @Injectable({ providedIn: 'root' })
 export class AnioLectivoService {
   private api = inject(ApiService);
-  private base = 'aniolectivo'; // http://localhost:5000/api/aniolectivo
+  private base = 'aniolectivo'; 
 
   /** 🔹 Normaliza años numéricos a fechas ISO */
   private normalizePayload(input: CreatePayload | UpdatePayload): any {

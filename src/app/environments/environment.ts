@@ -1,7 +1,9 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5000/api',
+  apiUrl: 'http://192.168.0.10:5000/api',
+
+  
   school: {
     titleLine1: 'UNIDAD EDUCATIVA',
     titleLine2: '“FRAY BARTOLOMÉ DE LAS CASAS - SALASACA”',

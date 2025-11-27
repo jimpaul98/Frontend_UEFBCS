@@ -166,10 +166,78 @@ type ResumenItem = {
       opacity: .75;
     }
 
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .wrap {
+        padding: 16px 12px;
+        gap: 20px;
+      }
+      
+      .title {
+        font-size: 22px;
+      }
+      
+      .subtitle {
+        font-size: 13px;
+      }
+      
+      .grid-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .charts {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+    
     @media (max-width: 600px) {
+      .wrap {
+        padding: 12px 8px;
+        gap: 16px;
+      }
+      
       .header {
         flex-direction: column;
         align-items: flex-start;
+      }
+      
+      .title {
+        font-size: 20px;
+      }
+      
+      .subtitle {
+        font-size: 12px;
+      }
+      
+      .summary-card {
+        padding: 12px;
+        gap: 12px;
+      }
+      
+      .summary-card mat-icon {
+        font-size: 32px;
+      }
+      
+      .summary-card .info h2 {
+        font-size: 18px;
+      }
+      
+      .summary-card .info p {
+        font-size: 12px;
+      }
+      
+      .chart-card {
+        padding: 12px;
+      }
+      
+      .chart-header h3 {
+        font-size: 14px;
+      }
+      
+      .chart-sub {
+        font-size: 11px;
       }
     }
   `]

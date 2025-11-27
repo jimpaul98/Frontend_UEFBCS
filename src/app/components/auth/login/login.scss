@@ -93,7 +93,7 @@
   }
 }
 
-/* Responsivo */
+/* === RESPONSIVE STYLES === */
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column;
@@ -109,6 +109,64 @@
 
     .card {
       width: 90%;
+      padding: 1.5rem;
+      
+      .card-header {
+        margin-bottom: 1.5rem;
+        
+        .logo {
+          width: 70px;
+          height: 70px;
+        }
+        
+        h2 {
+          font-size: 1.5rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 599px) {
+  .login-container {
+    .card {
+      width: 95%;
+      padding: 1.25rem;
+      border-radius: 12px;
+      
+      .card-header {
+        margin-bottom: 1.25rem;
+        
+        .logo {
+          width: 60px;
+          height: 60px;
+        }
+        
+        h2 {
+          font-size: 1.25rem;
+        }
+        
+        .subtitle {
+          font-size: 0.85rem;
+        }
+      }
+      
+      .input-field {
+        margin-bottom: 1rem;
+      }
+      
+      .login-button {
+        height: 44px;
+        font-size: 0.95rem;
+      }
+      
+      .help-text {
+        margin-top: 1.25rem;
+        
+        a {
+          font-size: 0.85rem;
+        }
+      }
     }
   }
 }

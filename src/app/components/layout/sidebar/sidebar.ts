@@ -2,12 +2,10 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-// No necesitas MatSidenavModule aquí, ya que no estás definiendo el sidenav en este componente.
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../services/auth.service';
 import { Observable, map } from 'rxjs';
-// FormsModule no es necesario si solo estás mostrando enlaces.
 
 @Component({
   selector: 'app-sidebar',
@@ -15,10 +13,8 @@ import { Observable, map } from 'rxjs';
   imports: [
     CommonModule,
     RouterModule,
-    MatListModule, // Componentes de lista
-    MatIconModule, // Componentes de ícono
-    // MatSidenavModule (Removido: No se usa directamente aquí)
-    // FormsModule (Removido: No se usa)
+    MatListModule,
+    MatIconModule,
   ],
   template: `
     <mat-nav-list *ngIf="role$ | async as role">
@@ -91,7 +87,8 @@ import { Observable, map } from 'rxjs';
         </a>
 
         <a mat-list-item routerLink="/app/historial" routerLinkActive="active-link">
-          <mat-icon matListItemIcon>history_toggle_off</mat-icon> <span matListItemTitle>Historial Academico</span>
+          <mat-icon matListItemIcon>history_toggle_off</mat-icon>
+          <span matListItemTitle>Historial Academico</span>
         </a>
       </ng-template>
     </mat-nav-list>
@@ -101,24 +98,33 @@ import { Observable, map } from 'rxjs';
       .mat-nav-list {
         padding-top: 0;
       }
+      
       .active-link {
         background-color: rgba(0, 0, 0, 0.08);
       }
-      /* Se recomienda usar CSS para el espaciado en lugar de margin-right en el mat-icon */
-      /* El uso de matListItemIcon ya maneja el layout internamente */
+      
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        :host ::ng-deep .mat-mdc-list-item {
+          padding: 12px 16px;
+        }
+      }
+      
+      @media (max-width: 599px) {
+        :host ::ng-deep .mat-mdc-list-item {
+          padding: 14px 16px;
+          min-height: 48px;
+        }
+      }
     `,
   ],
 })
 export class SidebarComponent implements OnInit {
   private authService = inject(AuthService);
 
-  // El tipo debe ser Observable<string>, no Observable<string | undefined> si el map lo resuelve
   role$!: Observable<string>;
 
   ngOnInit(): void {
-    // 1. Obtiene el rol del usuario (user?.rol).
-    // 2. Si es null/undefined, usa un string vacío ('').
-    // 3. Convierte a minúsculas para una comparación uniforme.
     this.role$ = this.authService.user$.pipe(
       map((user) => (user?.rol ?? '').toLowerCase())
     );
